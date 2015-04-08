@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "gfs.h"
+#include "ad.h"
 #include "mock.h"
 
 using namespace pebble::mock;
@@ -38,23 +38,23 @@ TEST_F(gfs_test, Version1) {
     AccelRawData a = { .x = 1000, .y = 5000, .z = -5000 };
     for (int i = 0; i < 16; i++) mock_data.push_back(a);
 
-    gfs_start(gfs_test::gfs_callback, GFS_SAMPLING_100HZ);
+    ad_start(gfs_test::gfs_callback, GFS_SAMPLING_100HZ);
     for (int i = 0; i < 126; i++) Pebble::accelService << mock_data;
 
     ASSERT_TRUE(gfs_test::buffer != nullptr);
-    gfs_header *h = reinterpret_cast<gfs_header*>(gfs_test::buffer);
+    header *h = reinterpret_cast<header *>(gfs_test::buffer);
     EXPECT_EQ(h->type, GFS_HEADER_TYPE);
     EXPECT_EQ(h->count, 124);
     EXPECT_EQ(h->samples_per_second, GFS_SAMPLING_100HZ);
 
-    gfs_packed_accel_data *data = reinterpret_cast<gfs_packed_accel_data*>(gfs_test::buffer + sizeof(gfs_header));
+    threed_data *data = reinterpret_cast<threed_data *>(gfs_test::buffer + sizeof(header));
     for (int i = 0; i < h->count; i++) {
         EXPECT_EQ(data[i].x_val, 1000);
         EXPECT_EQ(data[i].y_val, 4095);
         EXPECT_EQ(data[i].z_val, -4095);
     }
 
-    gfs_stop();
+    ad_stop();
 
 }
 

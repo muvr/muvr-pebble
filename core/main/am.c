@@ -13,7 +13,7 @@ static int _am_last_error_distance = 0;
 static int _am_error_count = 0;
 static uint32_t _am_tag = 0;
 
-static Queue* _am_message_queue;
+static queue_t *_am_message_queue;
 
 char* _am_get_error_message(int code) {
     switch (code) {
@@ -54,7 +54,7 @@ void _send_next_message() {
     APP_LOG_AM("_send_next_message - begin");
     
     if (_am_message_queue == NULL) {
-        APP_LOG_AM("_send_next_message - no queue - end");
+        APP_LOG_AM("_send_next_message - no queue_t - end");
         return;
     }
     
@@ -68,10 +68,10 @@ void _send_next_message() {
     
     APP_LOG_AM("_send_next_message - message size: %d", size);
     
-    int queueLength = queue_length(_am_message_queue);
-    if ((queueLength > 0) && (queueLength <= 256)) {
-        uint8_t offset = (uint8_t)(queueLength - 1);
-        gfs_update_padding((void*)buffer, offset);
+    size_t length = queue_length(_am_message_queue);
+    if (length > 0 && length < 256) {
+        uint8_t offset = (uint8_t)(length - 1);
+        ad_update_time_offset((void *) buffer, offset);
     }
 
     DictionaryIterator* message;
@@ -154,7 +154,7 @@ void _am_gfs_sample_callback(uint8_t* buffer, uint16_t size) {
     APP_LOG_AM("_am_gfs_sample_callback - begin");
     
     if (_am_message_queue == NULL) {
-        APP_LOG_AM("_am_gfs_sample_callback - no queue - end");
+        APP_LOG_AM("_am_gfs_sample_callback - no queue_t - end");
         return;
     }
     
@@ -164,7 +164,7 @@ void _am_gfs_sample_callback(uint8_t* buffer, uint16_t size) {
     APP_LOG_AM("_am_gfs_sample_callback - end");
 }
 
-gfs_sample_callback_t am_start() {
+ad_sample_callback_t am_start() {
     _am_message_queue = queue_create();
     
     app_message_open(APP_MESSAGE_INBOX_SIZE_MINIMUM, APP_MESSAGE_OUTBOX_SIZE_MINIMUM);
@@ -220,7 +220,7 @@ uint32_t am_tag() {
     return _am_tag;
 }
 
-int am_queue_length() {
+size_t am_queue_length() {
     APP_LOG_AM("am_queue_length - end");
 
     if (_am_message_queue == NULL)

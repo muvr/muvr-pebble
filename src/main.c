@@ -1,5 +1,5 @@
 #include "pebble.h"
-#include "../core/main/gfs.h"
+#include "../core/main/ad.h"
 #include "../core/main/am.h"
 
 #define TIMER_MS 1000

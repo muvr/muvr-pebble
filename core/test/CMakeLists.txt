@@ -2,7 +2,7 @@ SET(test_EXECUTABLE pebble-core-test)
 SET_PROPERTY(DIRECTORY . APPEND PROPERTY COMPILE_DEFINITIONS GTEST_USE_OWN_TR1_TUPLE=1)
 
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/../main)
-FILE(GLOB TestSources *.cpp *.c)
+FILE(GLOB TestSources *.cc *.c)
 
 ADD_EXECUTABLE(${test_EXECUTABLE} ${TestSources})
 TARGET_LINK_LIBRARIES(${test_EXECUTABLE} gtest gtest_main pebble-core pebble-mock ${Boost_LIBRARIES})
