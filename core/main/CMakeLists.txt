@@ -1,0 +1,6 @@
+SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/..)
+
+FILE(GLOB MainSources *.c)
+
+ADD_LIBRARY(pebble-core ${MainSources})
+TARGET_LINK_LIBRARIES(pebble-core)
