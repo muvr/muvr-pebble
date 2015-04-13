@@ -18,6 +18,12 @@ static void disc_layer_update_callback(Layer *me, GContext *ctx) {
     graphics_context_set_text_color(ctx, GColorWhite);
     GRect bounds = layer_get_frame(me);
 
+    graphics_draw_text(ctx, "Bicep curl", fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD),
+                       GRect(5, 5, bounds.size.w - 10, 100),
+                       GTextOverflowModeWordWrap, 
+                       GTextAlignmentLeft,
+                       NULL);
+/*
     char text[TEXT_LENGTH];
 
     snprintf(text, TEXT_LENGTH - 1, "Tag: %lx\nLE: %d %s\nLED: %d\nEC: %d\nP: %d\nQueue: %d\nUB: %d",
@@ -30,6 +36,7 @@ static void disc_layer_update_callback(Layer *me, GContext *ctx) {
             GTextOverflowModeWordWrap,
             GTextAlignmentLeft,
             NULL);
+*/
 }
 
 static void timer_callback(void *data) {

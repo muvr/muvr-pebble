@@ -13,17 +13,6 @@
 #define GFS_HEADER_TYPE (uint16_t)0xad
 
 /**
- * 5 B in header
- */
-struct __attribute__((__packed__)) header {
-    uint8_t  type;                   // 1
-    uint8_t  count;                  // 2
-    uint8_t  samples_per_second;     // 3
-    uint8_t  sample_size;            // 4
-    uint8_t time_offset;             // 5
-};
-
-/**
  * Packed 5 B of the accelerometer values
  */
 struct __attribute__((__packed__)) threed_data {
