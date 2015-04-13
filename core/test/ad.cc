@@ -36,19 +36,14 @@ TEST_F(gfs_test, Version1) {
     // that is, we must push 376 * 8 packets of accel data
     std::vector<AccelRawData> mock_data;
     AccelRawData a = { .x = 1000, .y = 5000, .z = -5000 };
-    for (int i = 0; i < 16; i++) mock_data.push_back(a);
+    for (int i = 0; i < 2; i++) mock_data.push_back(a);
 
     ad_start(gfs_test::gfs_callback, GFS_SAMPLING_100HZ);
     for (int i = 0; i < 126; i++) Pebble::accelService << mock_data;
 
     ASSERT_TRUE(gfs_test::buffer != nullptr);
-    header *h = reinterpret_cast<header *>(gfs_test::buffer);
-    EXPECT_EQ(h->type, GFS_HEADER_TYPE);
-    EXPECT_EQ(h->count, 124);
-    EXPECT_EQ(h->samples_per_second, GFS_SAMPLING_100HZ);
-
-    threed_data *data = reinterpret_cast<threed_data *>(gfs_test::buffer + sizeof(header));
-    for (int i = 0; i < h->count; i++) {
+    threed_data *data = reinterpret_cast<threed_data *>(gfs_test::buffer);
+    for (int i = 0; i < 126; i++) {
         EXPECT_EQ(data[i].x_val, 1000);
         EXPECT_EQ(data[i].y_val, 4095);
         EXPECT_EQ(data[i].z_val, -4095);

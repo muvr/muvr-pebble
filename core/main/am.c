@@ -1,10 +1,24 @@
 #include "am.h"
 
-#if 1 == 2
 #define APP_LOG_AM APP_LOG_DEBUG
-#else
-#define APP_LOG_AM(...)
-#endif
+
+#define GFS_HEADER_TYPE (uint16_t)0xad
+
+/*
+void ad_update_time_offset(void *header, uint8_t padding) {
+    struct header *h = (struct header *) header;
+    h->time_offset = padding;
+}
+
+void ad_write_header() {
+    struct header *h = (struct header *) ad_context.buffer;
+    h->type = GFS_HEADER_TYPE;
+    h->count = 0;
+    h->sample_size = sizeof(struct threed_data);
+    h->samples_per_second = ad_context.samples_per_second;
+    ad_context.buffer_position = sizeof(struct header);
+}
+*/
 
 static int _am_count = 0;
 static int _am_last_error = 0;
@@ -71,7 +85,7 @@ void _send_next_message() {
     size_t length = queue_length(_am_message_queue);
     if (length > 0 && length < 256) {
         uint8_t offset = (uint8_t)(length - 1);
-        ad_update_time_offset((void *) buffer, offset);
+        // ad_update_time_offset((void *) buffer, offset);
     }
 
     DictionaryIterator* message;
@@ -164,7 +178,7 @@ void _am_gfs_sample_callback(uint8_t* buffer, uint16_t size) {
     APP_LOG_AM("_am_gfs_sample_callback - end");
 }
 
-ad_sample_callback_t am_start() {
+message_callback_t am_start(uint8_t type, uint8_t samples_per_second, uint8_t sample_size) {
     _am_message_queue = queue_create();
     
     app_message_open(APP_MESSAGE_INBOX_SIZE_MINIMUM, APP_MESSAGE_OUTBOX_SIZE_MINIMUM);

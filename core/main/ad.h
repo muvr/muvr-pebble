@@ -1,16 +1,12 @@
 #pragma once
 #include <pebble.h>
+#include "m.h"
 
 #define E_GFS_ALREADY_RUNNING -1
 #define E_GFS_MEM -2
 
-// buffer size in B
-#define GFS_BUFFER_SIZE (uint16_t)635 // 630 = 126 samples per call
-
 // power-of-two samples at a time
 #define GFS_NUM_SAMPLES 2
-
-#define GFS_HEADER_TYPE (uint16_t)0xad
 
 /**
  * Packed 5 B of the accelerometer values
@@ -22,21 +18,18 @@ struct __attribute__((__packed__)) threed_data {
 };
 
 typedef enum {
-    GFS_SAMPLING_10HZ = 10,
-    GFS_SAMPLING_25HZ = 25,
-    GFS_SAMPLING_50HZ = 50,
+//    GFS_SAMPLING_10HZ = 10,
+//    GFS_SAMPLING_25HZ = 25,
+//    GFS_SAMPLING_50HZ = 50,
     GFS_SAMPLING_100HZ = 100
 } ad_sampling_rate_t;
-
-typedef void (*ad_sample_callback_t) (uint8_t* buffer, uint16_t size);
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-int ad_start(ad_sample_callback_t callback, ad_sampling_rate_t frequency);
+int ad_start(message_callback_t callback, ad_sampling_rate_t frequency);
 int ad_stop();
-void ad_update_time_offset(void *header, uint8_t padding);
 
 #ifdef __cplusplus
 }
