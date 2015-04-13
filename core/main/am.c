@@ -210,38 +210,9 @@ void am_stop() {
     APP_LOG_AM("am_stop - end");
 }
 
-int am_count() {
-    return _am_count;
+void am_get_status(char **text, size_t max_size) {
+    size_t ql = 0;
+    if (_am_message_queue != NULL) ql = queue_length(_am_message_queue);
+    snprintf(*text, max_size - 1, "LE: %d %s\nLED: %d\nEC: %d\nP: %d\nQueue: %d\nUB: %d",
+             _am_last_error, _am_last_error_text, _am_last_error_distance, _am_error_count, ql, heap_bytes_used());
 }
-
-int am_last_error() {
-    return _am_last_error;
-}
-
-char* am_last_error_text() {
-    return _am_last_error_text;
-}
-
-int am_last_error_distance() {
-    return _am_last_error_distance;
-}
-
-int am_error_count() {
-    return _am_error_count;
-}
-
-uint32_t am_tag() {
-    return _am_tag;
-}
-
-size_t am_queue_length() {
-    APP_LOG_AM("am_queue_length - end");
-
-    if (_am_message_queue == NULL)
-        return 0;
-    else
-        return _am_message_queue->length;
-    
-    APP_LOG_AM("am_queue_length - end");
-}
-
