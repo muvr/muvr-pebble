@@ -1,25 +1,5 @@
 #include "am.h"
 
-#define APP_LOG_AM APP_LOG_DEBUG
-
-#define GFS_HEADER_TYPE (uint16_t)0xad
-
-/*
-void ad_update_time_offset(void *header, uint8_t padding) {
-    struct header *h = (struct header *) header;
-    h->time_offset = padding;
-}
-
-void ad_write_header() {
-    struct header *h = (struct header *) ad_context.buffer;
-    h->type = GFS_HEADER_TYPE;
-    h->count = 0;
-    h->sample_size = sizeof(struct threed_data);
-    h->samples_per_second = ad_context.samples_per_second;
-    ad_context.buffer_position = sizeof(struct header);
-}
-*/
-
 /**
  * Context that holds the current callback and samples_per_second. It is used in the accelerometer
  * callback to calculate the G forces and to push the packed sample buffer to the callback.
