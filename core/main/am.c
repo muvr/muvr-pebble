@@ -23,23 +23,30 @@ typedef struct am_context_t {
     uint8_t time_offset;
 };
 
-char *get_error_text(int code) {
+char *get_error_text(int code, char *result, size_t size) {
+    if (size < 5) return "";
+    if (size < 10) return strcpy(result, "E_MEM");
+
+    if (code < -4000)      { strcpy(result, "outb-f "); code += 4000; }
+    else if (code < -3000) { strcpy(result, "outb-s "); code += 3000; }
+    else if (code < -2000) { strcpy(result, "dict-w "); code += 2000; }
+    else if (code < -1000) { strcpy(result, "outb-b "); code += 1000; }
     switch (code) {
-        case APP_MSG_OK: return "";
-        case APP_MSG_SEND_TIMEOUT: return "TO";
-        case APP_MSG_SEND_REJECTED: return "REJ";
-        case APP_MSG_NOT_CONNECTED: return "NC";
-        case APP_MSG_APP_NOT_RUNNING: return "NR";
-        case APP_MSG_INVALID_ARGS: return "INV";
-        case APP_MSG_BUSY: return "BUSY";
-        case APP_MSG_BUFFER_OVERFLOW: return "OVER";
-        case APP_MSG_ALREADY_RELEASED: return "ARED";
-        case APP_MSG_CALLBACK_ALREADY_REGISTERED: return "AREG";
-        case APP_MSG_CALLBACK_NOT_REGISTERED: return "CNR";
-        case APP_MSG_OUT_OF_MEMORY: return "MEMO";
-        case APP_MSG_CLOSED: return "CL";
-        case APP_MSG_INTERNAL_ERROR: return "INTE";
-        default: return "UNK";
+        case APP_MSG_OK:                          return strcat(result, "");
+        case APP_MSG_SEND_TIMEOUT:                return strcat(result, "TO");
+        case APP_MSG_SEND_REJECTED:               return strcat(result, "REJ");
+        case APP_MSG_NOT_CONNECTED:               return strcat(result, "NC");
+        case APP_MSG_APP_NOT_RUNNING:             return strcat(result, "NR");
+        case APP_MSG_INVALID_ARGS:                return strcat(result, "INV");
+        case APP_MSG_BUSY:                        return strcat(result, "BUSY");
+        case APP_MSG_BUFFER_OVERFLOW:             return strcat(result, "OVER");
+        case APP_MSG_ALREADY_RELEASED:            return strcat(result, "ARED");
+        case APP_MSG_CALLBACK_ALREADY_REGISTERED: return strcat(result, "AREG");
+        case APP_MSG_CALLBACK_NOT_REGISTERED:     return strcat(result, "CNR");
+        case APP_MSG_OUT_OF_MEMORY:               return strcat(result, "MEMO");
+        case APP_MSG_CLOSED:                      return strcat(result, "CL");
+        case APP_MSG_INTERNAL_ERROR:              return strcat(result, "INTE");
+        default:                                  return strcat(result, "UNK");
     }
 }
 
@@ -57,7 +64,6 @@ void send_buffer(struct am_context_t *context, uint8_t *buffer, uint16_t size) {
     DictionaryIterator* message;
     AppMessageResult app_message_result;
     if ((app_message_result = app_message_outbox_begin(&message)) != APP_MSG_OK) {
-
         if (app_message_result == APP_MSG_BUSY) return;
 
         context->error_count++;
@@ -81,7 +87,7 @@ void send_buffer(struct am_context_t *context, uint8_t *buffer, uint16_t size) {
     if ((app_message_result = app_message_outbox_send()) != APP_MSG_OK) {
         context->error_count++;
         context->last_error_distance = 0;
-        context->last_error = -1100 - app_message_result;
+        context->last_error = -3000 - app_message_result;
 
         return;
     }
@@ -123,7 +129,7 @@ void outbox_failed(DictionaryIterator* iterator, AppMessageResult reason, void* 
     pop_message();
     context->error_count++;
     context->last_error_distance = 0;
-    context->last_error = -1200 - reason;
+    context->last_error = -4000 - reason;
 
     while (queue_length(context->queue) > 10) pop_message();
 
@@ -179,9 +185,10 @@ void am_stop() {
 
 void am_get_status(char **text, size_t max_size) {
     struct am_context_t *context = app_message_get_context();
+    char error_text[16];
+    get_error_text(context->last_error, error_text, 16);
     size_t ql = 0;
     if (context->queue != NULL) ql = queue_length(context->queue);
-    char *error_text = get_error_text(context->last_error);
     snprintf(*text, max_size - 1, "LE: %d %s\nLED: %d\nEC: %d\nP: %d\nQueue: %d\nUB: %d",
              context->last_error, error_text, context->last_error_distance, context->error_count, ql, heap_bytes_used());
 }
