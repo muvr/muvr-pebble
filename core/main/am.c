@@ -200,7 +200,7 @@ void am_stop() {
             dict_write_end(iter);
             if (app_message_outbox_send() == APP_MSG_OK) break;
         }
-        psleep(50);
+        psleep(500);
     }
     _am_last_error = 0;
     _am_last_error_distance = -1;

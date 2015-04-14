@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 #include "ad.h"
-#include "mock.h"
+#include "instances.h"
 
-using namespace pebble::mock;
+using namespace pebble;
 
 class gfs_test : public testing::Test {
 protected:
@@ -39,7 +39,7 @@ TEST_F(gfs_test, Version1) {
     for (int i = 0; i < 2; i++) mock_data.push_back(a);
 
     ad_start(gfs_test::gfs_callback, GFS_SAMPLING_100HZ);
-    for (int i = 0; i < 126; i++) Pebble::accelService << mock_data;
+    for (int i = 0; i < 126; i++) instances::accel_service << mock_data;
 
     ASSERT_TRUE(gfs_test::buffer != nullptr);
     threed_data *data = reinterpret_cast<threed_data *>(gfs_test::buffer);

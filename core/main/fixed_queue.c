@@ -11,7 +11,6 @@ static queue_t queue;
 
 queue_t *queue_create() {
     queue.length = 0;
-
     return &queue;
 }
 
@@ -39,15 +38,11 @@ void queue_destroy(queue_t **queue) {
 }
 
 void queue_add(queue_t *queue, uint8_t* buffer, uint16_t size) {
-    APP_LOG_QUEUE("queue_add - begin");
-
-    APP_LOG_QUEUE("queue_add - size: %d", size);
-
     if (queue->length > 0) {
-        struct queue_node * last = (struct queue_node *)malloc(sizeof(struct queue_node));
-        void* ptr = malloc(size);
+        struct queue_node *last = (struct queue_node *)malloc(sizeof(struct queue_node));
+        void *ptr = malloc(size);
         memcpy(ptr, buffer, size);
-        last->buffer = (uint8_t*)ptr;
+        last->buffer = (uint8_t *)ptr;
         last->size = size;
         last->next = NULL;
 
@@ -56,13 +51,14 @@ void queue_add(queue_t *queue, uint8_t* buffer, uint16_t size) {
         current->next = last;
         queue->length = queue->length + 1;
     } else {
-        struct queue_node * last = queue->first;
-        void* ptr = malloc(size);
+        struct queue_node *last = (struct queue_node *)malloc(sizeof(struct queue_node));
+        void *ptr = malloc(size);
         memcpy(ptr, buffer, size);
-        last->buffer = (uint8_t*)ptr;
+        last->buffer = (uint8_t *)ptr;
         last->size = size;
         last->next = NULL;
         queue->length = 1;
+        queue->first = last;
     }
 
     APP_LOG_QUEUE("queue_add - end");
