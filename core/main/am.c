@@ -125,9 +125,7 @@ void outbox_failed(DictionaryIterator* iterator, AppMessageResult reason, void* 
     context->last_error_distance = 0;
     context->last_error = -1200 - reason;
 
-    if (queue_length(context->queue) > 10) { // Avoid out of memory situations.
-        while (queue_length(context->queue) > 0) pop_message();
-    }
+    while (queue_length(context->queue) > 10) pop_message();
 
     send_next_message();
 }

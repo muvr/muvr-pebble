@@ -6,12 +6,10 @@
 #define APP_LOG_QUEUE(...)
 #endif
 
-//
-static queue_t queue;
-
 queue_t *queue_create() {
-    queue.length = 0;
-    return &queue;
+    queue_t *queue = malloc(sizeof(queue_t));
+    queue->length = 0;
+    return queue;
 }
 
 void queue_destroy(queue_t **queue) {
@@ -31,8 +29,6 @@ void queue_destroy(queue_t **queue) {
         queue_pop(pQueue, &buffer, &size);
         if (buffer != NULL) free(buffer);
     };
-
-    free(pQueue);
 
     APP_LOG_QUEUE("queue_destroy - end");
 }
