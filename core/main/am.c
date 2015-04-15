@@ -99,7 +99,6 @@ void send_next_message() {
 
     uint8_t *payload_buffer;
     uint16_t payload_size;
-    queue_peek(context->queue, &payload_buffer, &payload_size);
     if (payload_buffer == NULL) return;
 
     uint16_t size = (uint16_t)(payload_size + sizeof(struct header));

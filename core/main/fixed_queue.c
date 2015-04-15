@@ -13,83 +13,77 @@ queue_t *queue_create() {
 }
 
 void queue_destroy(queue_t **queue) {
-    APP_LOG_QUEUE("queue_destroy - begin");
+    queue_t *q = *queue;
+    if (q == NULL) return;
 
-    queue_t * pQueue = (*queue);
-    if (pQueue == NULL) {
-        APP_LOG_QUEUE("queue_destroy - end");
-        return;
-    }
-
-    (*queue) = NULL;
-    while (pQueue->length > 0) {
-        uint8_t* buffer;
-        uint16_t size;
-
-        queue_pop(pQueue, &buffer, &size);
-        if (buffer != NULL) free(buffer);
+    while (q->length > 0) {
+        struct queue_node *node = q->first;
+        q->first = node->next;
+        q->length--;
+        free(node->buffer);
+        free(node);
     };
-
-    APP_LOG_QUEUE("queue_destroy - end");
+    *queue = NULL;
 }
 
-void queue_add(queue_t *queue, uint8_t* buffer, uint16_t size) {
-    if (queue->length > 0) {
-        struct queue_node *last = (struct queue_node *)malloc(sizeof(struct queue_node));
-        void *ptr = malloc(size);
-        memcpy(ptr, buffer, size);
-        last->buffer = (uint8_t *)ptr;
-        last->size = size;
-        last->next = NULL;
+struct queue_node *make_node(const uint8_t *buffer, const uint16_t size) {
+    struct queue_node *node = (struct queue_node *)malloc(sizeof(struct queue_node));
+    node->buffer = malloc(size);
+    if (node->buffer == NULL) exit(-1); // Bantha Poodoo!
 
-        struct queue_node * current = queue->first;
-        while (current->next != NULL) current = current->next;
-        current->next = last;
-        queue->length = queue->length + 1;
+    memcpy(node->buffer, buffer, size);
+    node->size = size;
+    node->next = NULL;
+
+    return node;
+}
+
+uint16_t queue_add(queue_t *queue, const uint8_t* buffer, const uint16_t size) {
+    if (buffer == NULL || size == 0) return queue->length;
+
+    struct queue_node *node = make_node(buffer, size);
+    if (queue->first != NULL) {
+        struct queue_node *last = queue->first;
+        while (last->next != NULL) {
+            last = last->next;
+        }
+        last->next = node;
     } else {
-        struct queue_node *last = (struct queue_node *)malloc(sizeof(struct queue_node));
-        void *ptr = malloc(size);
-        memcpy(ptr, buffer, size);
-        last->buffer = (uint8_t *)ptr;
-        last->size = size;
-        last->next = NULL;
-        queue->length = 1;
-        queue->first = last;
+        queue->first = node;
     }
-
-    APP_LOG_QUEUE("queue_add - end");
+    queue->length++;
+    return queue->length;
 }
 
 void queue_peek(queue_t *queue, uint8_t **buffer, uint16_t *size) {
-    APP_LOG_QUEUE("queue_peek - begin");
-
     (*buffer) = queue->first->buffer;
     (*size) = queue->first->size;
-
-    APP_LOG_QUEUE("queue_peek - end");
 }
 
-void queue_pop(queue_t *queue, uint8_t **buffer, uint16_t *size) {
-    APP_LOG_QUEUE("queue_pop - begin");
+uint16_t queue_pop(queue_t *queue, uint8_t *buffer, const uint16_t size) {
+    // empty queue
+    if (queue->length == 0) return 0;
 
+    // at least one element
     struct queue_node *node = queue->first;
-    (*buffer) = node->buffer;
-    (*size) = node->size;
-    
-    if (node->next == NULL) {
-        node->buffer = NULL;
-        node->size = 0;
-        queue->length = 0;
-    } else {
-        queue->length = queue->length - 1;
-        queue->first = node->next;
-        free(node);
-    }
-    
-    APP_LOG_QUEUE("queue_pop - end");
+    if (size < node->size) return 0;
+
+    // enough space in the buffer
+    uint16_t copied_size = node->size;
+    memcpy(buffer, node->buffer, copied_size);
+
+    // drop the first element
+    queue->length = queue->length - 1;
+    queue->first = node->next;
+
+    // deallocate
+    free(node->buffer);
+    free(node);
+
+    return copied_size;
 }
 
-size_t queue_length(queue_t *queue) {
+size_t queue_length(const queue_t *queue) {
     if (queue == NULL) return 0;
     
     return queue->length;
