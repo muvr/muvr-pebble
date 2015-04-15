@@ -1,14 +1,9 @@
 #include "fixed_queue.h"
 
-#if 1 == 2
-#define APP_LOG_QUEUE APP_LOG_DEBUG
-#else
-#define APP_LOG_QUEUE(...)
-#endif
-
 queue_t *queue_create() {
     queue_t *queue = malloc(sizeof(queue_t));
     queue->length = 0;
+    queue->first = NULL;
     return queue;
 }
 
@@ -16,13 +11,13 @@ void queue_destroy(queue_t **queue) {
     queue_t *q = *queue;
     if (q == NULL) return;
 
-    while (q->length > 0) {
+    while (q->first != NULL) {
         struct queue_node *node = q->first;
         q->first = node->next;
-        q->length--;
         free(node->buffer);
         free(node);
-    };
+    }
+
     *queue = NULL;
 }
 
@@ -55,35 +50,41 @@ uint16_t queue_add(queue_t *queue, const uint8_t* buffer, const uint16_t size) {
     return queue->length;
 }
 
-void queue_peek(queue_t *queue, uint8_t **buffer, uint16_t *size) {
-    (*buffer) = queue->first->buffer;
-    (*size) = queue->first->size;
-}
-
-uint16_t queue_pop(queue_t *queue, uint8_t *buffer, const uint16_t size) {
+uint16_t queue_peek(queue_t *queue, uint8_t *buffer, const uint16_t size) {
     // empty queue
     if (queue->length == 0) return 0;
 
     // at least one element
     struct queue_node *node = queue->first;
-    if (size < node->size) return 0;
+    if (size < node->size) return node->size;
 
     // enough space in the buffer
     uint16_t copied_size = node->size;
     memcpy(buffer, node->buffer, copied_size);
 
-    // drop the first element
-    queue->length = queue->length - 1;
-    queue->first = node->next;
-
-    // deallocate
-    free(node->buffer);
-    free(node);
-
     return copied_size;
 }
 
-size_t queue_length(const queue_t *queue) {
+queue_t *queue_tail(queue_t *queue) {
+    // empty
+    if (queue->length == 0) return queue;
+
+    // at least one element
+    struct queue_node *node = queue->first;
+
+    // unlink the node
+    queue->first = node->next;
+    queue->length--;
+
+    // deallocate its memory
+    free(node->buffer);
+    free(node);
+
+    // return mutated queue
+    return queue;
+}
+
+uint16_t queue_length(const queue_t *queue) {
     if (queue == NULL) return 0;
     
     return queue->length;

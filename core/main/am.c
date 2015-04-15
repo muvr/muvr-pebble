@@ -1,4 +1,5 @@
 #include "am.h"
+#include "fixed_queue.h"
 
 /**
  * Context that holds the current callback and samples_per_second. It is used in the accelerometer
@@ -50,27 +51,17 @@ char *get_error_text(int code, char *result, size_t size) {
     }
 }
 
-void pop_message(void) {
-    struct am_context_t *context = app_message_get_context();
-    if (context->queue == NULL) return;
-
-    uint8_t* buffer;
-    uint16_t size;
-    queue_pop(context->queue, &buffer, &size);
-    if (buffer != NULL) free(buffer);
-}
-
-void send_buffer(struct am_context_t *context, uint8_t *buffer, uint16_t size) {
+bool send_buffer(struct am_context_t *context, uint8_t *buffer, uint16_t size) {
     DictionaryIterator* message;
     AppMessageResult app_message_result;
     if ((app_message_result = app_message_outbox_begin(&message)) != APP_MSG_OK) {
-        if (app_message_result == APP_MSG_BUSY) return;
+        if (app_message_result == APP_MSG_BUSY) return false;
 
         context->error_count++;
         context->last_error_distance = 0;
         context->last_error = -1000 - app_message_result;
 
-        return;
+        return false;
     }
 
     DictionaryResult dictionary_result;
@@ -79,60 +70,68 @@ void send_buffer(struct am_context_t *context, uint8_t *buffer, uint16_t size) {
         context->last_error_distance = 0;
         context->last_error = -2000 - dictionary_result;
 
-        return;
+        return false;
     }
     dict_write_end(message);
-    if (message == NULL) return;
+    if (message == NULL) return false;
 
     if ((app_message_result = app_message_outbox_send()) != APP_MSG_OK) {
         context->error_count++;
         context->last_error_distance = 0;
         context->last_error = -3000 - app_message_result;
 
-        return;
+        return false;
     }
+
+    return true;
 }
 
-void send_next_message() {
+void send_all_messages(void) {
+    static const uint16_t payload_size_max = APP_MESSAGE_OUTBOX_SIZE_MINIMUM - sizeof(struct header);
+
     struct am_context_t *context = app_message_get_context();
     if (context->queue == NULL) return;
+    if (queue_length(context->queue) == 0) return;
 
-    uint8_t *payload_buffer;
-    uint16_t payload_size;
-    if (payload_buffer == NULL) return;
+    uint8_t  buffer[APP_MESSAGE_OUTBOX_SIZE_MINIMUM];
+    uint16_t payload_size = queue_peek(context->queue, buffer + sizeof(struct header), payload_size_max);
+    if (payload_size > payload_size_max) exit(-3);
 
-    uint16_t size = (uint16_t)(payload_size + sizeof(struct header));
-    uint8_t *buffer = malloc(size);
-    memcpy(buffer + sizeof(struct header), payload_buffer, payload_size);
-    struct header *header = (struct header *)buffer;
+    struct header *header = (struct header *) buffer;
     header->type = context->type;
     header->samples_per_second = context->samples_per_second;
     header->sample_size = context->sample_size;
     header->count = (uint8_t)(payload_size / context->sample_size);
-    header->time_offset = 0;
-    send_buffer(context, buffer, size);
-    free(buffer);
+    header->time_offset = (uint8_t)queue_length(context->queue);
+
+    for (int i = 0; i < 8; ++i) APP_LOG(APP_LOG_LEVEL_DEBUG, "%d\n", buffer[i]);
+
+    if (send_buffer(context, buffer, (uint16_t)(payload_size + sizeof(struct header)))) {
+        queue_tail(context->queue);
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "queue = queue_tail(...). %d\n", queue_length(context->queue));
+    } else {
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "Keeping queue. %d\n", queue_length(context->queue));
+    }
 }
 
 void outbox_sent(DictionaryIterator *iterator, void *ctx) {
     struct am_context_t *context = ctx;
-    pop_message();
     context->count++;
     context->last_error_distance++;
-    send_next_message();
+    send_all_messages();
 }
 
 void outbox_failed(DictionaryIterator* iterator, AppMessageResult reason, void* ctx) {
     struct am_context_t *context = ctx;
 
-    pop_message();
     context->error_count++;
     context->last_error_distance = 0;
     context->last_error = -4000 - reason;
 
-    while (queue_length(context->queue) > 10) pop_message();
+    // TODO: update me with trim
+    if (queue_length(context->queue) > 10) exit(-2);
 
-    send_next_message();
+    send_all_messages();
 }
 
 void sample_callback(uint8_t* buffer, uint16_t size) {
@@ -140,7 +139,7 @@ void sample_callback(uint8_t* buffer, uint16_t size) {
     if (context->queue == NULL) return;
 
     queue_add(context->queue, buffer, size);
-    send_next_message();
+    send_all_messages();
 }
 
 message_callback_t am_start(uint8_t type, uint8_t samples_per_second, uint8_t sample_size) {
@@ -165,8 +164,6 @@ message_callback_t am_start(uint8_t type, uint8_t samples_per_second, uint8_t sa
 
 void am_stop() {
     struct am_context_t *context = app_message_get_context();
-    queue_destroy(&context->queue);
-    app_message_set_context(NULL);
 
     for (int i = 0; i < 5; ++i) {
         DictionaryIterator *iter;
@@ -178,8 +175,9 @@ void am_stop() {
         psleep(500);
     }
 
+    queue_destroy(&context->queue);
+    app_message_set_context(NULL);
     free(context);
-
 }
 
 void am_get_status(char **text, size_t max_size) {

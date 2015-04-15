@@ -44,11 +44,17 @@ uint16_t queue_add(queue_t *queue, const uint8_t *buffer, const uint16_t size);
 /// for ``size`` bytes. Returns the actual number of bytes copied, or 0
 /// if the queue is empty.
 ///
-uint16_t queue_pop(queue_t *queue, uint8_t *buffer, const uint16_t size);
+uint16_t queue_peek(queue_t *queue, uint8_t *buffer, const uint16_t size);
+
+///
+/// Mutates ``queue`` to point to its tail.
+///
+queue_t *queue_tail(queue_t *queue);
+
 ///
 /// Returns the length of the queue
 ///
-size_t queue_length(const queue_t *queue);
+uint16_t queue_length(const queue_t *queue);
 
 #ifdef __cplusplus
 }

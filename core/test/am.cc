@@ -6,7 +6,6 @@ class am_test : public testing::Test {
 
 };
 
-/*
 TEST_F(am_test, trivial) {
     auto callback = am_start(123, 100, 1);
     uint8_t buf[] = {1, 2, 3};
@@ -41,4 +40,3 @@ TEST_F(am_test, timeout_on_send) {
 
     am_stop();
 }
- */
