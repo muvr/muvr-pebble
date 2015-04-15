@@ -1,3 +1,4 @@
+#include "compat.h"
 #include <pebble.h>
 #include "ad.h"
 
@@ -24,7 +25,7 @@ static struct {
 /**
  * Handle the samples arriving.
  */
-void gfs_raw_accel_data_handler(AccelRawData *data, uint32_t num_samples, uint64_t timestamp) {
+void gfs_raw_accel_data_handler(AccelRawData *data, uint32_t num_samples, uint64_t __unused timestamp) {
     if (num_samples != GFS_NUM_SAMPLES) return /* FAIL */;
 
     size_t len = sizeof(struct threed_data) * num_samples;

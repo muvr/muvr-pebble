@@ -1,5 +1,5 @@
 #pragma once
-#include <pebble.h>
+#include <stdint.h>
 #include "m.h"
 
 #define E_GFS_ALREADY_RUNNING -1

@@ -1,5 +1,7 @@
+#include "compat.h"
 #include "am.h"
 #include "fixed_queue.h"
+#include <pebble.h>
 
 #define OUTB_B_CODE 32768
 #define DICT_W_CODE 65535
@@ -10,7 +12,7 @@
  * Context that holds the current callback and samples_per_second. It is used in the accelerometer
  * callback to calculate the G forces and to push the packed sample buffer to the callback.
  */
-typedef struct am_context_t {
+struct am_context_t {
     // the number of packets sent
     int count;
     // the last error code
@@ -26,7 +28,6 @@ typedef struct am_context_t {
     uint8_t type;
     uint8_t sample_size;
     uint8_t samples_per_second;
-    uint8_t time_offset;
 };
 
 char *get_error_text(int code, char *result, size_t size) {
@@ -100,7 +101,7 @@ void send_all_messages(void) {
 
     while (queue_length(context->queue) > 0) {
         uint16_t payload_size = queue_peek(context->queue, buffer + sizeof(struct header), payload_size_max);
-        if (payload_size > payload_size_max) exit(-3);  // we are sending more bytes than our buffer
+        if (payload_size > payload_size_max) EXIT(-3);  // we are sending more bytes than our buffer
 
         struct header *header = (struct header *) buffer;
         header->type = context->type;
@@ -122,14 +123,14 @@ void send_all_messages(void) {
     }
 }
 
-void outbox_sent(DictionaryIterator *iterator, void *ctx) {
+void outbox_sent(DictionaryIterator  __unused *iterator, void *ctx) {
     struct am_context_t *context = ctx;
     context->count++;
     context->last_error_distance++;
     send_all_messages();
 }
 
-void outbox_failed(DictionaryIterator* iterator, AppMessageResult reason, void* ctx) {
+void outbox_failed(DictionaryIterator __unused *iterator, AppMessageResult reason, void* ctx) {
     struct am_context_t *context = ctx;
 
     context->error_count++;
@@ -137,7 +138,7 @@ void outbox_failed(DictionaryIterator* iterator, AppMessageResult reason, void* 
     context->last_error = -OUTB_F_CODE - reason;
 
     // TODO: update me with trim
-    if (queue_length(context->queue) > 10) exit(-2);
+    if (queue_length(context->queue) > 10) EXIT(-2);
 
     send_all_messages();
 }
@@ -192,8 +193,7 @@ void am_get_status(char **text, uint16_t max_size) {
     struct am_context_t *context = app_message_get_context();
     char error_text[16];
     get_error_text(context->last_error, error_text, 16);
-    size_t ql = 0;
-    if (context->queue != NULL) ql = queue_length(context->queue);
-    snprintf(*text, max_size - 1, "LE: %d %s\nLED: %d\nEC: %d\nP: %d\nQueue: %d\nUB: %d",
+    uint16_t ql = queue_length(context->queue);
+    snprintf(*text, max_size - 1, "LE: %d %s\nLED: %d\nEC: %d\nQueue: %d\nUB: %zu",
              context->last_error, error_text, context->last_error_distance, context->error_count, ql, heap_bytes_used());
 }

@@ -1,4 +1,6 @@
 #include "fixed_queue.h"
+#include "compat.h"
+#include <pebble.h>
 
 struct internal_queue_node_t {
     uint8_t *buffer;
@@ -36,7 +38,7 @@ void queue_destroy(queue_t **queue) {
 struct internal_queue_node_t *make_node(const uint8_t *buffer, const uint16_t size) {
     struct internal_queue_node_t *node = (struct internal_queue_node_t *)malloc(sizeof(struct internal_queue_node_t));
     node->buffer = malloc(size);
-    if (node->buffer == NULL) exit(-1); // Bantha Poodoo!
+    if (node->buffer == NULL) EXIT(-1); // Bantha Poodoo!
 
     memcpy(node->buffer, buffer, size);
     node->size = size;
