@@ -4,6 +4,34 @@
 
 class am_test : public testing::Test {
 protected:
+    template <typename T>
+    void bytes_equal(const std::vector<T> &actual, const std::initializer_list<T> &expected) {
+        EXPECT_EQ(actual.size(), expected.size());
+        auto a = actual.begin();
+        for (auto &e : expected) {
+            EXPECT_EQ(e, *a);
+            a++;
+        }
+    }
+
+    /*
+    As an exercise in obscene C++, I leave the variadic template functions here
+    ---
+    template <typename T>
+    void bytes_equal(const typename std::vector<T>::iterator &start,
+                     const typename std::vector<T>::iterator &end, T t) {
+        EXPECT_EQ(t, *start);
+    }
+
+    template<typename T, typename... Args>
+    void bytes_equal(const typename std::vector<T>::iterator &start,
+                     const typename std::vector<T>::iterator &end, T t, Args... args) {
+        if (start == end) GTEST_FAIL() << "Too few actual values";
+        EXPECT_EQ(t, *start);
+        bytes_equal(start + 1, end, args...);
+    }
+    */
+
     virtual void SetUp() {
         pebble::mocks::reset();
     }
@@ -15,21 +43,13 @@ TEST_F(am_test, trivial) {
     callback(buf, 3);
     auto data = pebble::mocks::app_messages()->last_dict().get<std::vector<uint8_t>>(0xface0fb0);
 
-    EXPECT_EQ(123, data[0]);
-    EXPECT_EQ(3,   data[1]);
-    EXPECT_EQ(100, data[2]);
-    EXPECT_EQ(1,   data[3]);
-    EXPECT_EQ(0,   data[4]);
-
-    EXPECT_EQ(1,   data[5]);
-    EXPECT_EQ(2,   data[6]);
-    EXPECT_EQ(3,   data[7]);
+    bytes_equal<uint8_t>(data, { 123, 3, 100, 1, 0, 1, 2, 3 });
 
     am_stop();
 }
 
 TEST_F(am_test, timeout_on_send) {
-    auto callback = am_start(223, 100, 1);
+    auto callback = am_start(123, 100, 1);
     uint8_t buf1[] = { 99, 100, 101};
     uint8_t buf2[] = {199, 200, 201};
 
@@ -40,10 +60,10 @@ TEST_F(am_test, timeout_on_send) {
     callback(buf2, 3);
 
     auto dicts = pebble::mocks::app_messages()->dicts();
-    for (auto &dict : dicts) {
-        auto data = dict.get<std::vector<uint8_t>>(0xface0fb0);
-        for (auto &x : data) std::cout << std::to_string(x) << std::endl;
-    }
+    auto data1 = dicts[0].get<std::vector<uint8_t>>(0xface0fb0);
+    auto data2 = dicts[1].get<std::vector<uint8_t>>(0xface0fb0);
+    bytes_equal<uint8_t>(data1, {123, 3, 100, 1, 1,  99, 100, 101});
+    bytes_equal<uint8_t>(data2, {123, 3, 100, 1, 0, 199, 200, 201});
 
     am_stop();
 }

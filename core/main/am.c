@@ -97,9 +97,9 @@ void send_all_messages(void) {
     struct am_context_t *context = app_message_get_context();
     if (context->queue == NULL) return;
     uint8_t buffer[APP_MESSAGE_OUTBOX_SIZE_MINIMUM];
-    uint16_t payload_size = queue_peek(context->queue, buffer + sizeof(struct header), payload_size_max);
 
     while (queue_length(context->queue) > 0) {
+        uint16_t payload_size = queue_peek(context->queue, buffer + sizeof(struct header), payload_size_max);
         if (payload_size > payload_size_max) exit(-3);  // we are sending more bytes than our buffer
 
         struct header *header = (struct header *) buffer;
