@@ -1,6 +1,5 @@
 #pragma once
-#include "fixed_queue.h"
-#include "debug_macros.h"
+#include <stdint.h>
 #include "m.h"
 
 #ifdef __cplusplus
@@ -20,7 +19,7 @@ struct __attribute__((__packed__)) header {
 
 message_callback_t am_start(uint8_t type, uint8_t samples_per_second, uint8_t sample_size);
 void am_stop();
-void am_get_status(char **text, size_t max_size);
+void am_get_status(char **text, uint16_t max_size);
 
 #ifdef __cplusplus
 }

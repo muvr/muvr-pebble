@@ -96,26 +96,29 @@ void send_all_messages(void) {
 
     struct am_context_t *context = app_message_get_context();
     if (context->queue == NULL) return;
-    if (queue_length(context->queue) == 0) return;
-
-    uint8_t  buffer[APP_MESSAGE_OUTBOX_SIZE_MINIMUM];
+    uint8_t buffer[APP_MESSAGE_OUTBOX_SIZE_MINIMUM];
     uint16_t payload_size = queue_peek(context->queue, buffer + sizeof(struct header), payload_size_max);
-    if (payload_size > payload_size_max) exit(-3);
 
-    struct header *header = (struct header *) buffer;
-    header->type = context->type;
-    header->samples_per_second = context->samples_per_second;
-    header->sample_size = context->sample_size;
-    header->count = (uint8_t)(payload_size / context->sample_size);
-    header->time_offset = (uint8_t)(queue_length(context->queue) - 1);
+    while (queue_length(context->queue) > 0) {
+        if (payload_size > payload_size_max) exit(-3);  // we are sending more bytes than our buffer
 
-    if (send_buffer(context, buffer, (uint16_t)(payload_size + sizeof(struct header)))) {
-        queue_tail(context->queue);
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "Sent; queue_length = %d\n", queue_length(context->queue));
-    } else {
-        char err[20];
-        get_error_text(context->last_error, err, 20);
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "Not sent: %s; queue_length = %d\n", err, queue_length(context->queue));
+        struct header *header = (struct header *) buffer;
+        header->type = context->type;
+        header->samples_per_second = context->samples_per_second;
+        header->sample_size = context->sample_size;
+        header->count = (uint8_t) (payload_size / context->sample_size);
+        header->time_offset = (uint8_t) (queue_length(context->queue) - 1);
+
+        if (send_buffer(context, buffer, (uint16_t) (payload_size + sizeof(struct header)))) {
+            queue_tail(context->queue);
+            APP_LOG(APP_LOG_LEVEL_DEBUG, "Sent; queue_length = %d\n", queue_length(context->queue));
+        } else {
+            char err[20];
+            get_error_text(context->last_error, err, 20);
+            APP_LOG(APP_LOG_LEVEL_DEBUG, "Not sent: %s; queue_length = %d\n", err, queue_length(context->queue));
+            // we want to keep the order of the messages ~> stop after first failing one
+            break;
+        }
     }
 }
 
@@ -185,7 +188,7 @@ void am_stop() {
     free(context);
 }
 
-void am_get_status(char **text, size_t max_size) {
+void am_get_status(char **text, uint16_t max_size) {
     struct am_context_t *context = app_message_get_context();
     char error_text[16];
     get_error_text(context->last_error, error_text, 16);

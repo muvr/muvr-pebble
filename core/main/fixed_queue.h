@@ -1,22 +1,12 @@
 #pragma once
 
 #include "pebble.h"
-#include "debug_macros.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-struct queue_node {
-    uint8_t *buffer;
-    uint16_t size;
-    struct queue_node *next;
-};
-
-typedef struct {
-    uint16_t length;
-    struct queue_node *first;
-} queue_t;
+typedef void *queue_t;
 
 ///
 /// Creates an empty queue
