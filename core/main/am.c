@@ -1,6 +1,11 @@
 #include "am.h"
 #include "fixed_queue.h"
 
+#define OUTB_B_CODE 32768
+#define DICT_W_CODE 65535
+#define OUTB_S_CODE 98304
+#define OUTB_F_CODE 131072
+
 /**
  * Context that holds the current callback and samples_per_second. It is used in the accelerometer
  * callback to calculate the G forces and to push the packed sample buffer to the callback.
@@ -28,10 +33,10 @@ char *get_error_text(int code, char *result, size_t size) {
     if (size < 5) return "";
     if (size < 10) return strcpy(result, "E_MEM");
 
-    if (code < -4000)      { strcpy(result, "outb-f "); code += 4000; }
-    else if (code < -3000) { strcpy(result, "outb-s "); code += 3000; }
-    else if (code < -2000) { strcpy(result, "dict-w "); code += 2000; }
-    else if (code < -1000) { strcpy(result, "outb-b "); code += 1000; }
+    if (code < -OUTB_F_CODE)      { strcpy(result, "outb-f "); code += OUTB_F_CODE; }
+    else if (code < -OUTB_S_CODE) { strcpy(result, "outb-s "); code += OUTB_S_CODE; }
+    else if (code < -DICT_W_CODE) { strcpy(result, "dict-w "); code += DICT_W_CODE; }
+    else if (code < -OUTB_B_CODE) { strcpy(result, "outb-b "); code += OUTB_B_CODE; }
     switch (code) {
         case APP_MSG_OK:                          return strcat(result, "");
         case APP_MSG_SEND_TIMEOUT:                return strcat(result, "TO");
@@ -59,7 +64,7 @@ bool send_buffer(struct am_context_t *context, uint8_t *buffer, uint16_t size) {
 
         context->error_count++;
         context->last_error_distance = 0;
-        context->last_error = -1000 - app_message_result;
+        context->last_error = -OUTB_B_CODE - app_message_result;
 
         return false;
     }
@@ -68,7 +73,7 @@ bool send_buffer(struct am_context_t *context, uint8_t *buffer, uint16_t size) {
     if ((dictionary_result = dict_write_data(message, 0xface0fb0, buffer, size)) != DICT_OK) {
         context->error_count++;
         context->last_error_distance = 0;
-        context->last_error = -2000 - dictionary_result;
+        context->last_error = -DICT_W_CODE - dictionary_result;
 
         return false;
     }
@@ -78,7 +83,7 @@ bool send_buffer(struct am_context_t *context, uint8_t *buffer, uint16_t size) {
     if ((app_message_result = app_message_outbox_send()) != APP_MSG_OK) {
         context->error_count++;
         context->last_error_distance = 0;
-        context->last_error = -3000 - app_message_result;
+        context->last_error = -OUTB_S_CODE - app_message_result;
 
         return false;
     }
@@ -102,15 +107,15 @@ void send_all_messages(void) {
     header->samples_per_second = context->samples_per_second;
     header->sample_size = context->sample_size;
     header->count = (uint8_t)(payload_size / context->sample_size);
-    header->time_offset = (uint8_t)queue_length(context->queue);
-
-    for (int i = 0; i < 8; ++i) APP_LOG(APP_LOG_LEVEL_DEBUG, "%d\n", buffer[i]);
+    header->time_offset = (uint8_t)(queue_length(context->queue) - 1);
 
     if (send_buffer(context, buffer, (uint16_t)(payload_size + sizeof(struct header)))) {
         queue_tail(context->queue);
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "queue = queue_tail(...). %d\n", queue_length(context->queue));
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "Sent; queue_length = %d\n", queue_length(context->queue));
     } else {
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "Keeping queue. %d\n", queue_length(context->queue));
+        char err[20];
+        get_error_text(context->last_error, err, 20);
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "Not sent: %s; queue_length = %d\n", err, queue_length(context->queue));
     }
 }
 
@@ -126,7 +131,7 @@ void outbox_failed(DictionaryIterator* iterator, AppMessageResult reason, void* 
 
     context->error_count++;
     context->last_error_distance = 0;
-    context->last_error = -4000 - reason;
+    context->last_error = -OUTB_F_CODE - reason;
 
     // TODO: update me with trim
     if (queue_length(context->queue) > 10) exit(-2);

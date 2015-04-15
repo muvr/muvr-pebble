@@ -3,7 +3,10 @@
 #include "mocks.h"
 
 class am_test : public testing::Test {
-
+protected:
+    virtual void SetUp() {
+        pebble::mocks::reset();
+    }
 };
 
 TEST_F(am_test, trivial) {
@@ -26,17 +29,21 @@ TEST_F(am_test, trivial) {
 }
 
 TEST_F(am_test, timeout_on_send) {
-    auto callback = am_start(123, 100, 1);
-    uint8_t buf[] = {1, 2, 3};
+    auto callback = am_start(223, 100, 1);
+    uint8_t buf1[] = { 99, 100, 101};
+    uint8_t buf2[] = {199, 200, 201};
 
     pebble::mocks::app_messages()->set_outbox_send_result(APP_MSG_INTERNAL_ERROR);
-    callback(buf, 3);
+    callback(buf1, 3);
 
     pebble::mocks::app_messages()->set_outbox_send_result(APP_MSG_OK);
-    callback(buf, 3);
+    callback(buf2, 3);
 
-    auto data = pebble::mocks::app_messages()->last_dict().get<std::vector<uint8_t>>(0xface0fb0);
-    for (auto &x : data) std::cout << std::to_string(x) << std::endl;
+    auto dicts = pebble::mocks::app_messages()->dicts();
+    for (auto &dict : dicts) {
+        auto data = dict.get<std::vector<uint8_t>>(0xface0fb0);
+        for (auto &x : data) std::cout << std::to_string(x) << std::endl;
+    }
 
     am_stop();
 }
