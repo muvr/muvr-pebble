@@ -33,7 +33,7 @@ TEST_F(ad_test, overflows) {
     AccelRawData a = { .x = 1000, .y = 5000, .z = -5000 };
     for (int i = 0; i < 2; i++) mock_data.push_back(a);
 
-    ad_start(ad_test::ad_callback, GFS_SAMPLING_100HZ);
+    ad_start(ad_test::ad_callback, AD_SAMPLING_100HZ);
     for (int i = 0; i < 126; i++) *mocks::accel_service() << mock_data;
 
     ASSERT_TRUE(ad_test::buffer != nullptr);

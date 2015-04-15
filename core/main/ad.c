@@ -3,7 +3,7 @@
 #include "ad.h"
 
 // buffer size in B
-#define GFS_BUFFER_SIZE (uint16_t)630 // 630 = 126 samples per call
+#define AD_BUFFER_SIZE (uint16_t)630 // 630 = 126 samples per call
 
 /**
  * Context that holds the current callback and samples_per_second. It is used in the accelerometer
@@ -25,11 +25,11 @@ static struct {
 /**
  * Handle the samples arriving.
  */
-void gfs_raw_accel_data_handler(AccelRawData *data, uint32_t num_samples, uint64_t __unused timestamp) {
-    if (num_samples != GFS_NUM_SAMPLES) return /* FAIL */;
+void ad_raw_accel_data_handler(AccelRawData *data, uint32_t num_samples, uint64_t __unused timestamp) {
+    if (num_samples != AD_NUM_SAMPLES) return /* FAIL */;
 
     size_t len = sizeof(struct threed_data) * num_samples;
-    if (ad_context.buffer_position == GFS_BUFFER_SIZE) {
+    if (ad_context.buffer_position == AD_BUFFER_SIZE) {
         ad_context.callback(ad_context.buffer, ad_context.buffer_position);
         ad_context.buffer_position = 0;
     }
@@ -53,16 +53,16 @@ void gfs_raw_accel_data_handler(AccelRawData *data, uint32_t num_samples, uint64
 }
 
 int ad_start(message_callback_t callback, ad_sampling_rate_t frequency) {
-    if (ad_context.callback != NULL) return E_GFS_ALREADY_RUNNING;
+    if (ad_context.callback != NULL) return E_AD_ALREADY_RUNNING;
 
     ad_context.callback = callback;
     ad_context.samples_per_second = (uint8_t) frequency;
-    ad_context.buffer = malloc(GFS_BUFFER_SIZE);
+    ad_context.buffer = malloc(AD_BUFFER_SIZE);
 
-    if (ad_context.buffer == NULL) return E_GFS_MEM;
+    if (ad_context.buffer == NULL) return E_AD_MEM;
 
     accel_service_set_sampling_rate((AccelSamplingRate)frequency);
-    accel_raw_data_service_subscribe(GFS_NUM_SAMPLES, gfs_raw_accel_data_handler);
+    accel_raw_data_service_subscribe(AD_NUM_SAMPLES, ad_raw_accel_data_handler);
     accel_service_set_sampling_rate((AccelSamplingRate)frequency);
 
     return 1;

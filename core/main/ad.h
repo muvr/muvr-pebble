@@ -2,11 +2,11 @@
 #include <stdint.h>
 #include "m.h"
 
-#define E_GFS_ALREADY_RUNNING -1
-#define E_GFS_MEM -2
+#define E_AD_ALREADY_RUNNING -1
+#define E_AD_MEM -2
 
 // power-of-two samples at a time
-#define GFS_NUM_SAMPLES 2
+#define AD_NUM_SAMPLES 2
 
 /**
  * Packed 5 B of the accelerometer values
@@ -18,10 +18,10 @@ struct __attribute__((__packed__)) threed_data {
 };
 
 typedef enum {
-//    GFS_SAMPLING_10HZ = 10,
-//    GFS_SAMPLING_25HZ = 25,
-//    GFS_SAMPLING_50HZ = 50,
-    GFS_SAMPLING_100HZ = 100
+//    AD_SAMPLING_10HZ = 10,
+//    AD_SAMPLING_25HZ = 25,
+//    AD_SAMPLING_50HZ = 50,
+    AD_SAMPLING_100HZ = 100
 } ad_sampling_rate_t;
 
 #ifdef __cplusplus
