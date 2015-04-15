@@ -17,6 +17,9 @@ struct __attribute__((__packed__)) threed_data {
     int16_t z_val : 13;
 };
 
+///
+/// Defines the sampling rates
+///
 typedef enum {
 //    AD_SAMPLING_10HZ = 10,
 //    AD_SAMPLING_25HZ = 25,
@@ -28,7 +31,19 @@ typedef enum {
 extern "C" {
 #endif
 
+///
+/// Starts the accelerometer recording, submits the data captured at the given
+/// ``frequency`` to the ``callback``. The ``callback`` is expected to perform
+/// some kind of I/O to transmit the data to some client.
+///
+/// Returns 0 for success, negative values for failures
+///
 int ad_start(message_callback_t callback, ad_sampling_rate_t frequency);
+
+///
+/// Stops the accelerometer recording. After this call, no more calls to
+/// the ``callback`` function passed to ``ad_start(...)`` are expected.
+///
 int ad_stop();
 
 #ifdef __cplusplus

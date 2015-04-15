@@ -189,11 +189,11 @@ void am_stop() {
     free(context);
 }
 
-void am_get_status(char **text, uint16_t max_size) {
+void am_get_status(char *text, uint16_t max_size) {
     struct am_context_t *context = app_message_get_context();
     char error_text[16];
     get_error_text(context->last_error, error_text, 16);
     uint16_t ql = queue_length(context->queue);
-    snprintf(*text, max_size - 1, "LE: %d %s\nLED: %d\nEC: %d\nQueue: %d\nUB: %zu",
+    snprintf(text, max_size - 1, "LE: %d %s\nLED: %d\nEC: %d\nQueue: %d\nUB: %zu",
              context->last_error, error_text, context->last_error_distance, context->error_count, ql, heap_bytes_used());
 }
