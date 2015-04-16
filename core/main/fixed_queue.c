@@ -76,11 +76,10 @@ uint16_t queue_peek(queue_t *queue, uint32_t *key, uint8_t *buffer, const uint16
     if (size < node->size) return node->size;
 
     // enough space in the buffer
-    uint16_t copied_size = node->size;
     *key = node->key;
-    memcpy(buffer, node->buffer, copied_size);
+    memcpy(buffer, node->buffer, node->size);
 
-    return copied_size;
+    return node->size;
 }
 
 queue_t *queue_tail(queue_t *queue) {
