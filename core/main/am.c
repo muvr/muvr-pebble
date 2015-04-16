@@ -124,27 +124,29 @@ static void send_all_messages(void) {
     }
 }
 
-static void outbox_sent(DictionaryIterator  __unused *iterator, void *ctx) {
+void outbox_sent(DictionaryIterator  __unused *iterator, void *ctx) {
     struct am_context_t *context = ctx;
+    if (ctx == NULL) return;
+
     context->count++;
     context->last_error_distance++;
     send_all_messages();
 }
 
-static void outbox_failed(DictionaryIterator __unused *iterator, AppMessageResult reason, void* ctx) {
+void outbox_failed(DictionaryIterator __unused *iterator, AppMessageResult reason, void* ctx) {
     struct am_context_t *context = ctx;
+    if (ctx == NULL) return;
 
     context->error_count++;
     context->last_error_distance = 0;
     context->last_error = -OUTB_F_CODE - reason;
-
-    while (queue_length(context->queue) > 10) queue_tail(context->queue);
 
     send_all_messages();
 }
 
 void sample_callback(uint8_t* buffer, uint16_t size) {
     struct am_context_t *context = app_message_get_context();
+    if (context == NULL) return;
     if (context->queue == NULL) return;
 
     queue_add(context->queue, 0xface0fb0, buffer, size);
@@ -153,7 +155,7 @@ void sample_callback(uint8_t* buffer, uint16_t size) {
 
 message_callback_t am_start(uint8_t type, uint8_t samples_per_second, uint8_t sample_size) {
     struct am_context_t *context = malloc(sizeof(struct am_context_t));
-    context->queue = queue_create();
+    context->queue = queue_create(8);
     context->count = 0;
     context->error_count = 0;
     context->last_error = 0;
@@ -179,7 +181,7 @@ void am_stop() {
 
     for (int i = 0; i < 10 && queue_length(context->queue) > 0; ++i) {
         send_all_messages();
-        psleep(500);
+        psleep(100);
     }
 
     queue_destroy(&context->queue);
@@ -189,9 +191,14 @@ void am_stop() {
 
 void am_get_status(char *text, uint16_t max_size) {
     struct am_context_t *context = app_message_get_context();
-    char error_text[16];
-    get_error_text(context->last_error, error_text, 16);
-    uint16_t ql = queue_length(context->queue);
-    snprintf(text, max_size - 1, "LE: %d %s\nLED: %d\nEC: %d\nQueue: %d\nUB: %zu",
-             context->last_error, error_text, context->last_error_distance, context->error_count, ql, heap_bytes_used());
+    if (context == NULL) {
+        strncpy(text, "No context", max_size);
+    } else {
+        char error_text[16];
+        get_error_text(context->last_error, error_text, 16);
+        uint16_t ql = queue_length(context->queue);
+        snprintf(text, max_size - 1, "LE: %d %s\nLED: %d\nEC: %d\nQueue: %d\nUB: %d",
+                 context->last_error, error_text, context->last_error_distance, context->error_count, ql,
+                 (int)heap_bytes_used());
+    }
 }

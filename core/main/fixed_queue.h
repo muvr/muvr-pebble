@@ -10,7 +10,7 @@ typedef void *queue_t;
 ///
 /// Creates an empty queue
 ///
-queue_t *queue_create();
+queue_t *queue_create(const uint8_t max_size);
 
 ///
 /// Destroys an existing queue, with all its elements

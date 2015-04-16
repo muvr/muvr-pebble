@@ -11,13 +11,15 @@ struct internal_queue_node_t {
 
 struct internal_queue_t {
     uint16_t length;
+    uint8_t  max_size;
     struct internal_queue_node_t *first;
 };
 
-queue_t *queue_create() {
-    struct internal_queue_t *queue = malloc(sizeof(queue_t));
+queue_t *queue_create(const uint8_t max_size) {
+    struct internal_queue_t *queue = malloc(sizeof(struct internal_queue_t));
     queue->length = 0;
     queue->first = NULL;
+    queue->max_size = max_size;
     return (queue_t *)queue;
 }
 
@@ -51,6 +53,7 @@ static struct internal_queue_node_t *make_node(const uint32_t key, const uint8_t
 uint16_t queue_add(queue_t *queue, const uint32_t key, const uint8_t* buffer, const uint16_t size) {
     struct internal_queue_t *q = (struct internal_queue_t *) queue;
     if (buffer == NULL || size == 0) return q->length;
+    if (q->length >= q->max_size) return 0;
 
     struct internal_queue_node_t *node = make_node(key, buffer, size);
     if (q->first != NULL) {

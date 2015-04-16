@@ -11,7 +11,7 @@ protected:
 };
 
 TEST_F(fixed_queue_test, simple) {
-    queue_t *q = queue_create();
+    queue_t *q = queue_create(8);
     queue_add(q, 0xface0fb0, make_buffer(1), 1);
     queue_add(q, 0xface0fb0, make_buffer(2), 1);
     queue_add(q, 0xface0fb0, make_buffer(3), 1);
@@ -29,7 +29,7 @@ TEST_F(fixed_queue_test, simple) {
 };
 
 TEST_F(fixed_queue_test, edge) {
-    queue_t *q = queue_create();
+    queue_t *q = queue_create(8);
 
     // cannot add empty buffer
     EXPECT_EQ(0, queue_add(q, 0, nullptr, 0));

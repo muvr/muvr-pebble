@@ -18,16 +18,9 @@ static void disc_layer_update_callback(Layer *me, GContext *ctx) {
     graphics_context_set_text_color(ctx, GColorWhite);
     GRect bounds = layer_get_frame(me);
 
-    graphics_draw_text(ctx, "Bicep curl", fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD),
-                       GRect(5, 5, bounds.size.w - 10, 100),
-                       GTextOverflowModeWordWrap, 
-                       GTextAlignmentLeft,
-                       NULL);
-/*
     char text[TEXT_LENGTH];
 
-    snprintf(text, TEXT_LENGTH - 1, "Tag: %lx\nLE: %d %s\nLED: %d\nEC: %d\nP: %d\nQueue: %d\nUB: %d",
-    	am_tag(), am_last_error(), am_last_error_text(), am_last_error_distance(), am_error_count(), am_count(), am_queue_length(), heap_bytes_used());
+    am_get_status(text, TEXT_LENGTH);
 
     graphics_draw_text(ctx,
             text,
@@ -36,7 +29,6 @@ static void disc_layer_update_callback(Layer *me, GContext *ctx) {
             GTextOverflowModeWordWrap,
             GTextAlignmentLeft,
             NULL);
-*/
 }
 
 static void timer_callback(void *data) {
@@ -54,7 +46,6 @@ static void window_load(Window *window) {
 }
 
 static void window_unload(Window *window) {
-    am_stop();
     layer_destroy(disc_layer);
 }
 
