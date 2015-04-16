@@ -138,8 +138,7 @@ static void outbox_failed(DictionaryIterator __unused *iterator, AppMessageResul
     context->last_error_distance = 0;
     context->last_error = -OUTB_F_CODE - reason;
 
-    // TODO: update me with trim
-    if (queue_length(context->queue) > 10) EXIT(-2);
+    while (queue_length(context->queue) > 10) queue_tail(context->queue);
 
     send_all_messages();
 }
