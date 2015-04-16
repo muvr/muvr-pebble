@@ -25,7 +25,7 @@ static struct {
 /**
  * Handle the samples arriving.
  */
-void ad_raw_accel_data_handler(AccelRawData *data, uint32_t num_samples, uint64_t __unused timestamp) {
+static void ad_raw_accel_data_handler(AccelRawData *data, uint32_t num_samples, uint64_t __unused timestamp) {
     if (num_samples != AD_NUM_SAMPLES) return /* FAIL */;
 
     size_t len = sizeof(struct threed_data) * num_samples;

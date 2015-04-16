@@ -6,6 +6,9 @@ class am_test : public testing::Test {
 protected:
     template <typename T>
     void bytes_equal(const std::vector<T> &actual, const std::initializer_list<T> &expected) {
+        for (auto &a : actual) std::cout << std::to_string(a) << ", ";
+        std::cout << std::endl;
+
         EXPECT_EQ(actual.size(), expected.size());
         auto a = actual.begin();
         for (auto &e : expected) {
@@ -38,14 +41,14 @@ protected:
 };
 
 TEST_F(am_test, trivial) {
-    auto callback = am_start(123, 100, 1);
-    uint8_t buf[] = {1, 2, 3};
-    callback(buf, 3);
+    auto callback = am_start(123, 100, 2);
+    uint8_t buf[] = {1, 1, 2, 2, 3, 3};
+    callback(buf, 6);
     auto data = pebble::mocks::app_messages()->last_dict().get<std::vector<uint8_t>>(0xface0fb0);
-
-    bytes_equal<uint8_t>(data, { 123, 3, 100, 1, 0, 1, 2, 3 });
-
+    bytes_equal<uint8_t>(data, { 123, 3, 100, 2, 0, 1, 1, 2, 2, 3, 3 });
     am_stop();
+    data = pebble::mocks::app_messages()->last_dict().get<std::vector<uint8_t>>(0xface0fb0);
+    bytes_equal<uint8_t>(data, { 123, 0, 100, 2, 0, 0 });
 }
 
 TEST_F(am_test, timeout_on_send) {

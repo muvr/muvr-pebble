@@ -30,7 +30,7 @@ struct am_context_t {
     uint8_t samples_per_second;
 };
 
-char *get_error_text(int code, char *result, size_t size) {
+static char *get_error_text(int code, char *result, size_t size) {
     if (size < 5) return "";
     if (size < 10) return strcpy(result, "E_MEM");
 
@@ -57,7 +57,7 @@ char *get_error_text(int code, char *result, size_t size) {
     }
 }
 
-bool send_buffer(struct am_context_t *context, uint8_t *buffer, uint16_t size) {
+static bool send_buffer(struct am_context_t *context, const uint32_t key, const uint8_t *buffer, const uint16_t size) {
     DictionaryIterator* message;
     AppMessageResult app_message_result;
     if ((app_message_result = app_message_outbox_begin(&message)) != APP_MSG_OK) {
@@ -71,7 +71,7 @@ bool send_buffer(struct am_context_t *context, uint8_t *buffer, uint16_t size) {
     }
 
     DictionaryResult dictionary_result;
-    if ((dictionary_result = dict_write_data(message, 0xface0fb0, buffer, size)) != DICT_OK) {
+    if ((dictionary_result = dict_write_data(message, key, buffer, size)) != DICT_OK) {
         context->error_count++;
         context->last_error_distance = 0;
         context->last_error = -DICT_W_CODE - dictionary_result;
@@ -92,7 +92,7 @@ bool send_buffer(struct am_context_t *context, uint8_t *buffer, uint16_t size) {
     return true;
 }
 
-void send_all_messages(void) {
+static void send_all_messages(void) {
     static const uint16_t payload_size_max = APP_MESSAGE_OUTBOX_SIZE_MINIMUM - sizeof(struct header);
 
     struct am_context_t *context = app_message_get_context();
@@ -100,7 +100,8 @@ void send_all_messages(void) {
     uint8_t buffer[APP_MESSAGE_OUTBOX_SIZE_MINIMUM];
 
     while (queue_length(context->queue) > 0) {
-        uint16_t payload_size = queue_peek(context->queue, buffer + sizeof(struct header), payload_size_max);
+        uint32_t key;
+        uint16_t payload_size = queue_peek(context->queue, &key, buffer + sizeof(struct header), payload_size_max);
         if (payload_size > payload_size_max) EXIT(-3);  // we are sending more bytes than our buffer
 
         struct header *header = (struct header *) buffer;
@@ -110,7 +111,7 @@ void send_all_messages(void) {
         header->count = (uint8_t) (payload_size / context->sample_size);
         header->time_offset = (uint8_t) (queue_length(context->queue) - 1);
 
-        if (send_buffer(context, buffer, (uint16_t) (payload_size + sizeof(struct header)))) {
+        if (send_buffer(context, key, buffer, (uint16_t) (payload_size + sizeof(struct header)))) {
             queue_tail(context->queue);
             APP_LOG(APP_LOG_LEVEL_DEBUG, "Sent; queue_length = %d\n", queue_length(context->queue));
         } else {
@@ -123,14 +124,14 @@ void send_all_messages(void) {
     }
 }
 
-void outbox_sent(DictionaryIterator  __unused *iterator, void *ctx) {
+static void outbox_sent(DictionaryIterator  __unused *iterator, void *ctx) {
     struct am_context_t *context = ctx;
     context->count++;
     context->last_error_distance++;
     send_all_messages();
 }
 
-void outbox_failed(DictionaryIterator __unused *iterator, AppMessageResult reason, void* ctx) {
+static void outbox_failed(DictionaryIterator __unused *iterator, AppMessageResult reason, void* ctx) {
     struct am_context_t *context = ctx;
 
     context->error_count++;
@@ -147,7 +148,7 @@ void sample_callback(uint8_t* buffer, uint16_t size) {
     struct am_context_t *context = app_message_get_context();
     if (context->queue == NULL) return;
 
-    queue_add(context->queue, buffer, size);
+    queue_add(context->queue, 0xface0fb0, buffer, size);
     send_all_messages();
 }
 
@@ -174,13 +175,11 @@ message_callback_t am_start(uint8_t type, uint8_t samples_per_second, uint8_t sa
 void am_stop() {
     struct am_context_t *context = app_message_get_context();
 
-    for (int i = 0; i < 5; ++i) {
-        DictionaryIterator *iter;
-        if (app_message_outbox_begin(&iter) == APP_MSG_OK) {
-            dict_write_int8(iter, 0x0000dead, 1);
-            dict_write_end(iter);
-            if (app_message_outbox_send() == APP_MSG_OK) break;
-        }
+    uint8_t buffer[1] = {0};
+    queue_add(context->queue, 0xface0fb0, buffer, 1);
+
+    for (int i = 0; i < 10 && queue_length(context->queue) > 0; ++i) {
+        send_all_messages();
         psleep(500);
     }
 
