@@ -9,7 +9,7 @@
 #define E_AD_MEM -2
 
 // power-of-two samples at a time
-#define AD_NUM_SAMPLES 2
+#define AD_NUM_SAMPLES 10
 
 /**
  * Packed 5 B of the accelerometer values

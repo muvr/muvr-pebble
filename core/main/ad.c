@@ -44,7 +44,6 @@ static void ad_raw_accel_data_handler(AccelRawData *data, uint32_t num_samples, 
     ad_context.buffer_position += len;
 
     if (ad_context.buffer_position == AD_BUFFER_SIZE) {
-        APP_LOG(APP_LOG_LEVEL_INFO, "%ld", (uint32_t)timestamp);
         ad_context.callback(ad_context.buffer, ad_context.buffer_position, timestamp);
         ad_context.buffer_position = 0;
     }

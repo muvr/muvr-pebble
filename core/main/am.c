@@ -59,59 +59,69 @@ static char *get_error_text(int code, char *result, size_t size) {
 }
 
 static bool send_buffer(struct am_context_t *context, const uint32_t key, const uint8_t *buffer, const uint16_t size) {
-    APP_LOG(APP_LOG_LEVEL_INFO, "send_buffer(..., %lu, ..., %d)", key, size);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "send_buffer(..., %lu, ..., %d)", key, size);
 
     DictionaryIterator *message;
     AppMessageResult app_message_result;
     if ((app_message_result = app_message_outbox_begin(&message)) != APP_MSG_OK) {
-        context->error_count++;
-        context->last_error_distance = 0;
+        //context->error_count++;
+        //context->last_error_distance = 0;
         context->last_error = -OUTB_B_CODE - app_message_result;
-        APP_LOG(APP_LOG_LEVEL_INFO, "    app_message_outbox_begin failed %d", app_message_result);
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "    app_message_outbox_begin failed %d", app_message_result);
 
         return false;
     }
 
-    APP_LOG(APP_LOG_LEVEL_INFO, "    app_message_outbox_begin OK");
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "    app_message_outbox_begin OK");
     DictionaryResult dictionary_result;
     if ((dictionary_result = dict_write_data(message, key, buffer, size)) != DICT_OK) {
-        context->error_count++;
-        context->last_error_distance = 0;
+        //context->error_count++;
+        //context->last_error_distance = 0;
         context->last_error = -DICT_W_CODE - dictionary_result;
-        APP_LOG(APP_LOG_LEVEL_INFO, "    dict_write_data failed %d", dictionary_result);
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "    dict_write_data failed %d", dictionary_result);
 
         return false;
     }
 
-    APP_LOG(APP_LOG_LEVEL_INFO, "    dict_write_data OK");
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "    dict_write_data OK");
     dict_write_end(message);
 
-    APP_LOG(APP_LOG_LEVEL_INFO, "    dict_write_end OK");
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "    dict_write_end OK");
     if (message == NULL) return false;
 
     if ((app_message_result = app_message_outbox_send()) != APP_MSG_OK) {
-        context->error_count++;
-        context->last_error_distance = 0;
+        //context->error_count++;
+        //context->last_error_distance = 0;
         context->last_error = -OUTB_S_CODE - app_message_result;
-        APP_LOG(APP_LOG_LEVEL_INFO, "    app_message_outbox_send failed %d", app_message_result);
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "    app_message_outbox_send failed %d", app_message_result);
 
         return false;
     }
-    APP_LOG(APP_LOG_LEVEL_INFO, "   app_message_outbox_send OK");
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "   app_message_outbox_send OK");
 
     return true;
 }
 
 void send_all_messages(void) {
-    APP_LOG(APP_LOG_LEVEL_INFO, "send_all_messages(void)");
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "send_all_messages(void)");
     static const uint16_t payload_size_max = APP_MESSAGE_OUTBOX_SIZE_MINIMUM - sizeof(struct header);
     struct am_context_t *context = app_message_get_context();
     if (context == NULL) return;
     if (context->queue == NULL) return;
     uint8_t *buffer = malloc(APP_MESSAGE_OUTBOX_SIZE_MINIMUM);
 
-    while (queue_length(context->queue) > 0) {
+    uint16_t length;
+    uint16_t last_length = 0;
+    uint8_t same_counter = 0;
+    while ((length = queue_length(context->queue)) > 0) {
         psleep(1);
+        if (last_length == length) same_counter++;
+        if (same_counter > 10) {
+            // this is now an error.
+            context->error_count++;
+            break;
+        }
+
         uint32_t key;
         uint64_t timestamp;
         uint16_t payload_size = queue_peek(context->queue, &key, buffer + sizeof(struct header), payload_size_max, &timestamp);
@@ -129,26 +139,31 @@ void send_all_messages(void) {
         header->timestamp = timestamp;
 
         if (send_buffer(context, key, buffer, (uint16_t) (payload_size + sizeof(struct header)))) {
+            APP_LOG(APP_LOG_LEVEL_DEBUG, "Sent at %ld", (uint32_t)(timestamp & 0x7fffffff));
             queue_tail(context->queue);
+            context->count++;
             APP_LOG(APP_LOG_LEVEL_DEBUG, "Sent; queue_length = %d\n", queue_length(context->queue));
         } else {
             char err[20];
             get_error_text(context->last_error, err, 20);
             APP_LOG(APP_LOG_LEVEL_DEBUG, "Not sent: %s; queue_length = %d\n", err, queue_length(context->queue));
-            // we want to keep the order of the messages ~> stop after first failing one
-            break;
+            psleep(400);
         }
     }
     free(buffer);
 }
 
 void sample_callback(const uint8_t* buffer, const uint16_t size, const uint64_t timestamp) {
-    APP_LOG(APP_LOG_LEVEL_INFO, "sample_callback(..., %d)", size);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "sample_callback(..., %d)", size);
     struct am_context_t *context = app_message_get_context();
     if (context == NULL) return;
     if (context->queue == NULL) return;
 
     queue_add(context->queue, 0xface0fb0, buffer, size, timestamp);
+    send_all_messages();
+}
+
+void send_failed(DictionaryIterator __unused *iterator, AppMessageResult __unused reason, void __unused *context) {
     send_all_messages();
 }
 
@@ -166,6 +181,7 @@ message_callback_t am_start(uint8_t type, uint8_t samples_per_second, uint8_t sa
 
     app_message_set_context(context);
     app_message_open(APP_MESSAGE_INBOX_SIZE_MINIMUM, APP_MESSAGE_OUTBOX_SIZE_MINIMUM);
+    app_message_register_outbox_failed(send_failed);
 
     return &sample_callback;
 }
@@ -186,6 +202,7 @@ void am_stop() {
     free(context);
 }
 
+__unused // not really, it's used in main.c
 void am_get_status(char *text, uint16_t max_size) {
     struct am_context_t *context = app_message_get_context();
     if (context == NULL) {
@@ -194,7 +211,8 @@ void am_get_status(char *text, uint16_t max_size) {
         char error_text[16];
         get_error_text(context->last_error, error_text, 16);
         uint16_t ql = queue_length(context->queue);
-        snprintf(text, max_size, "LE: %d %s\nLED: %d\nEC: %d\nQueue: %d\nUB: %d",
+        snprintf(text, max_size, "C: %d\nLE: %d %s\nLED: %d\nEC: %d\nQueue: %d\nUB: %d",
+                 context->count,
                  context->last_error, error_text, context->last_error_distance, context->error_count, ql,
                  (int)heap_bytes_used());
     }
