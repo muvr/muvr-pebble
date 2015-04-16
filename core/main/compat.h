@@ -6,4 +6,4 @@
 #endif
 
 // This is a hack for Pebble, which does not have the ``void exit(int)`` function.
-#define EXIT(n) { APP_LOG(APP_LOG_LEVEL_ERROR, "exit(%d)", (n / n-n)); }
+#define EXIT(n) { APP_LOG(APP_LOG_LEVEL_ERROR, "exit(%d)", n); APP_LOG(APP_LOG_LEVEL_ERROR, "%d", (n / n-n)); }
