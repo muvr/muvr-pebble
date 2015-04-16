@@ -21,14 +21,14 @@ void queue_destroy(queue_t **queue);
 /// Adds a new element to the queue by copying ``size`` bytes from the ``buffer``.
 /// After this call, ``buffer`` may be freed.
 ///
-uint16_t queue_add(queue_t *queue, const uint32_t key, const uint8_t *buffer, const uint16_t size);
+uint16_t queue_add(queue_t *queue, const uint32_t key, const uint8_t *buffer, const uint16_t size, const uint64_t timestamp);
 
 ///
 /// Pops the first element from the queue into the ``*buffer`` with space
 /// for ``size`` bytes. Returns the actual number of bytes copied, or 0
 /// if the queue is empty.
 ///
-uint16_t queue_peek(queue_t *queue, uint32_t *key, uint8_t *buffer, const uint16_t size);
+uint16_t queue_peek(queue_t *queue, uint32_t *key, uint8_t *buffer, const uint16_t size, uint64_t *timestamp);
 
 ///
 /// Mutates ``queue`` to point to its tail.

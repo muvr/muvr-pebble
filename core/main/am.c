@@ -34,11 +34,12 @@ static char *get_error_text(int code, char *result, size_t size) {
     if (size < 5) return "";
     if (size < 10) return strcpy(result, "E_MEM");
 
+    strcpy(result, "----- ");
     if (code < -OUTB_F_CODE)      { strcpy(result, "outb-f "); code += OUTB_F_CODE; }
     else if (code < -OUTB_S_CODE) { strcpy(result, "outb-s "); code += OUTB_S_CODE; }
     else if (code < -DICT_W_CODE) { strcpy(result, "dict-w "); code += DICT_W_CODE; }
     else if (code < -OUTB_B_CODE) { strcpy(result, "outb-b "); code += OUTB_B_CODE; }
-    switch (code) {
+    switch (-code) {
         case APP_MSG_OK:                          return strcat(result, "");
         case APP_MSG_SEND_TIMEOUT:                return strcat(result, "TO");
         case APP_MSG_SEND_REJECTED:               return strcat(result, "REJ");
@@ -58,58 +59,74 @@ static char *get_error_text(int code, char *result, size_t size) {
 }
 
 static bool send_buffer(struct am_context_t *context, const uint32_t key, const uint8_t *buffer, const uint16_t size) {
-    DictionaryIterator* message;
+    APP_LOG(APP_LOG_LEVEL_INFO, "send_buffer(..., %lu, ..., %d)", key, size);
+
+    DictionaryIterator *message;
     AppMessageResult app_message_result;
     if ((app_message_result = app_message_outbox_begin(&message)) != APP_MSG_OK) {
-        if (app_message_result == APP_MSG_BUSY) return false;
-
         context->error_count++;
         context->last_error_distance = 0;
         context->last_error = -OUTB_B_CODE - app_message_result;
+        APP_LOG(APP_LOG_LEVEL_INFO, "    app_message_outbox_begin failed %d", app_message_result);
 
         return false;
     }
 
+    APP_LOG(APP_LOG_LEVEL_INFO, "    app_message_outbox_begin OK");
     DictionaryResult dictionary_result;
     if ((dictionary_result = dict_write_data(message, key, buffer, size)) != DICT_OK) {
         context->error_count++;
         context->last_error_distance = 0;
         context->last_error = -DICT_W_CODE - dictionary_result;
+        APP_LOG(APP_LOG_LEVEL_INFO, "    dict_write_data failed %d", dictionary_result);
 
         return false;
     }
+
+    APP_LOG(APP_LOG_LEVEL_INFO, "    dict_write_data OK");
     dict_write_end(message);
+
+    APP_LOG(APP_LOG_LEVEL_INFO, "    dict_write_end OK");
     if (message == NULL) return false;
 
     if ((app_message_result = app_message_outbox_send()) != APP_MSG_OK) {
         context->error_count++;
         context->last_error_distance = 0;
         context->last_error = -OUTB_S_CODE - app_message_result;
+        APP_LOG(APP_LOG_LEVEL_INFO, "    app_message_outbox_send failed %d", app_message_result);
 
         return false;
     }
+    APP_LOG(APP_LOG_LEVEL_INFO, "   app_message_outbox_send OK");
 
     return true;
 }
 
-static void send_all_messages(void) {
+void send_all_messages(void) {
+    APP_LOG(APP_LOG_LEVEL_INFO, "send_all_messages(void)");
     static const uint16_t payload_size_max = APP_MESSAGE_OUTBOX_SIZE_MINIMUM - sizeof(struct header);
-
     struct am_context_t *context = app_message_get_context();
+    if (context == NULL) return;
     if (context->queue == NULL) return;
-    uint8_t buffer[APP_MESSAGE_OUTBOX_SIZE_MINIMUM];
+    uint8_t *buffer = malloc(APP_MESSAGE_OUTBOX_SIZE_MINIMUM);
 
     while (queue_length(context->queue) > 0) {
+        psleep(1);
         uint32_t key;
-        uint16_t payload_size = queue_peek(context->queue, &key, buffer + sizeof(struct header), payload_size_max);
-        if (payload_size > payload_size_max) EXIT(-3);  // we are sending more bytes than our buffer
+        uint64_t timestamp;
+        uint16_t payload_size = queue_peek(context->queue, &key, buffer + sizeof(struct header), payload_size_max, &timestamp);
+        if (payload_size > payload_size_max) {
+            APP_LOG(APP_LOG_LEVEL_ERROR, "send_all_messages(void): needed %d, had %d B.", payload_size, payload_size_max);
+            return;
+        }
 
         struct header *header = (struct header *) buffer;
         header->type = context->type;
         header->samples_per_second = context->samples_per_second;
         header->sample_size = context->sample_size;
         header->count = (uint8_t) (payload_size / context->sample_size);
-        header->time_offset = (uint8_t) (queue_length(context->queue) - 1);
+        header->queue_size = (uint8_t) (queue_length(context->queue) - 1);
+        header->timestamp = timestamp;
 
         if (send_buffer(context, key, buffer, (uint16_t) (payload_size + sizeof(struct header)))) {
             queue_tail(context->queue);
@@ -122,34 +139,16 @@ static void send_all_messages(void) {
             break;
         }
     }
+    free(buffer);
 }
 
-void outbox_sent(DictionaryIterator  __unused *iterator, void *ctx) {
-    struct am_context_t *context = ctx;
-    if (ctx == NULL) return;
-
-    context->count++;
-    context->last_error_distance++;
-    send_all_messages();
-}
-
-void outbox_failed(DictionaryIterator __unused *iterator, AppMessageResult reason, void* ctx) {
-    struct am_context_t *context = ctx;
-    if (ctx == NULL) return;
-
-    context->error_count++;
-    context->last_error_distance = 0;
-    context->last_error = -OUTB_F_CODE - reason;
-
-    send_all_messages();
-}
-
-void sample_callback(uint8_t* buffer, uint16_t size) {
+void sample_callback(const uint8_t* buffer, const uint16_t size, const uint64_t timestamp) {
+    APP_LOG(APP_LOG_LEVEL_INFO, "sample_callback(..., %d)", size);
     struct am_context_t *context = app_message_get_context();
     if (context == NULL) return;
     if (context->queue == NULL) return;
 
-    queue_add(context->queue, 0xface0fb0, buffer, size);
+    queue_add(context->queue, 0xface0fb0, buffer, size, timestamp);
     send_all_messages();
 }
 
@@ -167,8 +166,6 @@ message_callback_t am_start(uint8_t type, uint8_t samples_per_second, uint8_t sa
 
     app_message_set_context(context);
     app_message_open(APP_MESSAGE_INBOX_SIZE_MINIMUM, APP_MESSAGE_OUTBOX_SIZE_MINIMUM);
-    app_message_register_outbox_sent(outbox_sent);
-    app_message_register_outbox_failed(outbox_failed);
 
     return &sample_callback;
 }
@@ -177,7 +174,7 @@ void am_stop() {
     struct am_context_t *context = app_message_get_context();
 
     uint8_t buffer[1] = {0};
-    queue_add(context->queue, 0xface0fb0, buffer, 1);
+    queue_add(context->queue, 0xface0fb0, buffer, 1, 0);
 
     for (int i = 0; i < 10 && queue_length(context->queue) > 0; ++i) {
         send_all_messages();
@@ -192,12 +189,12 @@ void am_stop() {
 void am_get_status(char *text, uint16_t max_size) {
     struct am_context_t *context = app_message_get_context();
     if (context == NULL) {
-        strncpy(text, "No context", max_size);
+        strncpy(text, "Not recording", max_size);
     } else {
         char error_text[16];
         get_error_text(context->last_error, error_text, 16);
         uint16_t ql = queue_length(context->queue);
-        snprintf(text, max_size - 1, "LE: %d %s\nLED: %d\nEC: %d\nQueue: %d\nUB: %d",
+        snprintf(text, max_size, "LE: %d %s\nLED: %d\nEC: %d\nQueue: %d\nUB: %d",
                  context->last_error, error_text, context->last_error_distance, context->error_count, ql,
                  (int)heap_bytes_used());
     }

@@ -9,7 +9,7 @@ protected:
     static uint8_t *buffer;
     static uint16_t size;
 public:
-    static void ad_callback(uint8_t *b, uint16_t s);
+    static void ad_callback(const uint8_t *b, const uint16_t s, const uint64_t);
 
     virtual ~ad_test();
 };
@@ -18,7 +18,7 @@ ad_test::~ad_test() {
    if (buffer != nullptr) free(buffer);
 }
 
-void ad_test::ad_callback(uint8_t *b, uint16_t s) {
+void ad_test::ad_callback(const uint8_t *b, const uint16_t s, const uint64_t) {
     if (buffer != nullptr) free(buffer);
     buffer = (uint8_t *)malloc(s);
     memcpy(buffer, b, s);
@@ -34,11 +34,11 @@ TEST_F(ad_test, overflows) {
     for (int i = 0; i < 2; i++) mock_data.push_back(a);
 
     ad_start(ad_test::ad_callback, AD_SAMPLING_100HZ);
-    for (int i = 0; i < 126; i++) *mocks::accel_service() << mock_data;
+    for (int i = 0; i < AD_BUFFER_SIZE / 2 / sizeof(threed_data); i++) *mocks::accel_service() << mock_data;
 
     ASSERT_TRUE(ad_test::buffer != nullptr);
     threed_data *data = reinterpret_cast<threed_data *>(ad_test::buffer);
-    for (int i = 0; i < 126; i++) {
+    for (int i = 0; i < 100; i++) {
         EXPECT_EQ(data[i].x_val, 1000);
         EXPECT_EQ(data[i].y_val, 4095);
         EXPECT_EQ(data[i].z_val, -4095);

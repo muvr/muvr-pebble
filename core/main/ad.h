@@ -2,6 +2,9 @@
 #include <stdint.h>
 #include "m.h"
 
+// buffer size in B
+#define AD_BUFFER_SIZE (uint16_t)500 // 500 = 100 samples per call
+
 #define E_AD_ALREADY_RUNNING -1
 #define E_AD_MEM -2
 
@@ -23,7 +26,7 @@ struct __attribute__((__packed__)) threed_data {
 typedef enum {
 //    AD_SAMPLING_10HZ = 10,
 //    AD_SAMPLING_25HZ = 25,
-//    AD_SAMPLING_50HZ = 50,
+    AD_SAMPLING_50HZ = 50,
     AD_SAMPLING_100HZ = 100
 } ad_sampling_rate_t;
 

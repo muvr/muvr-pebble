@@ -14,7 +14,8 @@ struct __attribute__((__packed__)) header {
     uint8_t count;                  // 2
     uint8_t samples_per_second;     // 3
     uint8_t sample_size;            // 4
-    uint8_t time_offset;            // 5
+    uint8_t queue_size;             // 5
+    uint64_t timestamp;             // 13
 };
 
 ///

@@ -43,12 +43,12 @@ protected:
 TEST_F(am_test, trivial) {
     auto callback = am_start(123, 100, 2);
     uint8_t buf[] = {1, 1, 2, 2, 3, 3};
-    callback(buf, 6);
+    callback(buf, 6, 0);
     auto data = pebble::mocks::app_messages()->last_dict().get<std::vector<uint8_t>>(0xface0fb0);
-    bytes_equal<uint8_t>(data, { 123, 3, 100, 2, 0, 1, 1, 2, 2, 3, 3 });
+    bytes_equal<uint8_t>(data, { 123, 3, 100, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 3, 3 });
     am_stop();
     data = pebble::mocks::app_messages()->last_dict().get<std::vector<uint8_t>>(0xface0fb0);
-    bytes_equal<uint8_t>(data, { 123, 0, 100, 2, 0, 0 });
+    bytes_equal<uint8_t>(data, { 123, 0, 100, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 });
 }
 
 TEST_F(am_test, timeout_on_send) {
@@ -57,16 +57,16 @@ TEST_F(am_test, timeout_on_send) {
     uint8_t buf2[] = {199, 200, 201};
 
     pebble::mocks::app_messages()->set_outbox_send_result(APP_MSG_INTERNAL_ERROR);
-    callback(buf1, 3);
+    callback(buf1, 3, 0);
 
     pebble::mocks::app_messages()->set_outbox_send_result(APP_MSG_OK);
-    callback(buf2, 3);
+    callback(buf2, 3, 0);
 
     auto dicts = pebble::mocks::app_messages()->dicts();
     auto data1 = dicts[0].get<std::vector<uint8_t>>(0xface0fb0);
     auto data2 = dicts[1].get<std::vector<uint8_t>>(0xface0fb0);
-    bytes_equal<uint8_t>(data1, {123, 3, 100, 1, 1,  99, 100, 101});
-    bytes_equal<uint8_t>(data2, {123, 3, 100, 1, 0, 199, 200, 201});
+    bytes_equal<uint8_t>(data1, {123, 3, 100, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 99, 100, 101});
+    bytes_equal<uint8_t>(data2, {123, 3, 100, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 199, 200, 201});
 
     am_stop();
 }

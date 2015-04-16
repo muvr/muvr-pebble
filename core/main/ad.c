@@ -2,9 +2,6 @@
 #include <pebble.h>
 #include "ad.h"
 
-// buffer size in B
-#define AD_BUFFER_SIZE (uint16_t)630 // 630 = 126 samples per call
-
 /**
  * Context that holds the current callback and samples_per_second. It is used in the accelerometer
  * callback to calculate the G forces and to push the packed sample buffer to the callback.
@@ -25,15 +22,10 @@ static struct {
 /**
  * Handle the samples arriving.
  */
-static void ad_raw_accel_data_handler(AccelRawData *data, uint32_t num_samples, uint64_t __unused timestamp) {
+static void ad_raw_accel_data_handler(AccelRawData *data, uint32_t num_samples, uint64_t timestamp) {
     if (num_samples != AD_NUM_SAMPLES) return /* FAIL */;
 
     size_t len = sizeof(struct threed_data) * num_samples;
-    if (ad_context.buffer_position == AD_BUFFER_SIZE) {
-        ad_context.callback(ad_context.buffer, ad_context.buffer_position);
-        ad_context.buffer_position = 0;
-    }
-
     // pack
     struct threed_data *ad = (struct threed_data *)(ad_context.buffer + ad_context.buffer_position);
     for (unsigned int i = 0; i < num_samples; ++i) {
@@ -50,6 +42,11 @@ static void ad_raw_accel_data_handler(AccelRawData *data, uint32_t num_samples, 
         
     }
     ad_context.buffer_position += len;
+
+    if (ad_context.buffer_position == AD_BUFFER_SIZE) {
+        ad_context.callback(ad_context.buffer, ad_context.buffer_position, timestamp);
+        ad_context.buffer_position = 0;
+    }
 }
 
 int ad_start(message_callback_t callback, ad_sampling_rate_t frequency) {
@@ -69,7 +66,7 @@ int ad_start(message_callback_t callback, ad_sampling_rate_t frequency) {
 }
 
 int ad_stop() {
-    ad_context.callback = NULL;
     if (ad_context.buffer != NULL) free(ad_context.buffer);
+    ad_context.callback = NULL;
     return 1;
 }
