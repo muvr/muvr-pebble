@@ -154,7 +154,7 @@ void send_all_messages(void) {
     free(buffer);
 }
 
-void sample_callback(const uint8_t* buffer, const uint16_t size, const uint64_t timestamp) {
+void sample_callback(const uint8_t* buffer, const uint16_t size, const uint64_t timestamp, const uint16_t duration) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "sample_callback(..., %d)", size);
     struct am_context_t *context = app_message_get_context();
     if (context == NULL) return;

@@ -41,7 +41,7 @@ extern "C" {
 ///
 /// Returns 0 for success, negative values for failures
 ///
-int ad_start(message_callback_t callback, ad_sampling_rate_t frequency);
+int ad_start(const message_callback_t callback, const ad_sampling_rate_t frequency, const uint16_t maximum_time);
 
 ///
 /// Stops the accelerometer recording. After this call, no more calls to

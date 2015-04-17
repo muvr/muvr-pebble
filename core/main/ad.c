@@ -2,6 +2,8 @@
 #include <pebble.h>
 #include "ad.h"
 
+#define TIME_NAN 0
+
 /**
  * Context that holds the current callback and samples_per_second. It is used in the accelerometer
  * callback to calculate the G forces and to push the packed sample buffer to the callback.
@@ -13,8 +15,12 @@ static struct {
     uint8_t samples_per_second;
     // the buffer
     uint8_t* buffer;
+    // the maximum time
+    uint16_t maximum_time;
     // the position in the buffer
     uint16_t buffer_position;
+    // the start time
+    uint64_t start_time;
 } ad_context;
 
 #define SIGNED_12_MAX(x) (int16_t)((x) > 4095 ? 4095 : ((x) < -4095 ? -4095 : (x)))
@@ -24,7 +30,6 @@ static struct {
  */
 static void ad_raw_accel_data_handler(AccelRawData *data, uint32_t num_samples, uint64_t timestamp) {
     if (num_samples != AD_NUM_SAMPLES) return /* FAIL */;
-
     size_t len = sizeof(struct threed_data) * num_samples;
     // pack
     struct threed_data *ad = (struct threed_data *)(ad_context.buffer + ad_context.buffer_position);
@@ -43,18 +48,33 @@ static void ad_raw_accel_data_handler(AccelRawData *data, uint32_t num_samples, 
     }
     ad_context.buffer_position += len;
 
-    if (ad_context.buffer_position == AD_BUFFER_SIZE) {
-        ad_context.callback(ad_context.buffer, ad_context.buffer_position, timestamp);
+    bool submit = false;
+    if (ad_context.start_time != TIME_NAN) {
+        if (timestamp - ad_context.start_time >= ad_context.maximum_time) {
+            submit = true;
+        }
+        if (ad_context.buffer_position == AD_BUFFER_SIZE) {
+            submit = true;
+        }
+    } else {
+        ad_context.start_time = timestamp;
+    }
+
+    if (submit) {
+        ad_context.callback(ad_context.buffer, ad_context.buffer_position, timestamp, (uint16_t)(timestamp - ad_context.start_time));
         ad_context.buffer_position = 0;
+        ad_context.start_time = TIME_NAN;
     }
 }
 
-int ad_start(message_callback_t callback, ad_sampling_rate_t frequency) {
+int ad_start(const message_callback_t callback, const ad_sampling_rate_t frequency, const uint16_t maximum_time) {
     if (ad_context.callback != NULL) return E_AD_ALREADY_RUNNING;
 
     ad_context.callback = callback;
     ad_context.samples_per_second = (uint8_t) frequency;
     ad_context.buffer = malloc(AD_BUFFER_SIZE);
+    ad_context.maximum_time = maximum_time;
+    ad_context.start_time = TIME_NAN;
 
     if (ad_context.buffer == NULL) return E_AD_MEM;
 

@@ -59,7 +59,7 @@ static void init(void) {
     window_stack_push(window, true /* Animated */);
     window_set_background_color(window, GColorBlack);
 
-    ad_start(am_start(0xad, 50, 5), AD_SAMPLING_50HZ);
+    ad_start(am_start(0xad, 50, 5), AD_SAMPLING_50HZ, 2000);
 
     timer = app_timer_register(TIMER_MS, timer_callback, NULL);
 }
