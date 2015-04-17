@@ -53,15 +53,20 @@ static void ad_raw_accel_data_handler(AccelRawData *data, uint32_t num_samples, 
         if (timestamp - ad_context.start_time >= ad_context.maximum_time) {
             submit = true;
         }
-        if (ad_context.buffer_position == AD_BUFFER_SIZE) {
-            submit = true;
-        }
     } else {
         ad_context.start_time = timestamp;
     }
+    if (ad_context.buffer_position == AD_BUFFER_SIZE) {
+        submit = true;
+    }
 
     if (submit) {
-        ad_context.callback(ad_context.buffer, ad_context.buffer_position, timestamp, (uint16_t)(timestamp - ad_context.start_time));
+        uint16_t duration = (uint16_t)(timestamp - ad_context.start_time);
+        if (ad_context.callback != NULL) {
+            ad_context.callback(ad_context.buffer, ad_context.buffer_position, timestamp, duration);
+        } else {
+            APP_LOG(APP_LOG_LEVEL_DEBUG, "%d samples, %d reported duration", ad_context.buffer_position / sizeof(struct threed_data), duration);
+        }
         ad_context.buffer_position = 0;
         ad_context.start_time = TIME_NAN;
     }

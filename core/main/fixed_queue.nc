@@ -1,4 +1,4 @@
-#include "fixed_queue.h"
+#include "fixed_queue.nh"
 #include "compat.h"
 #include <pebble.h>
 

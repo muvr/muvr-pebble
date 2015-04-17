@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "fixed_queue.h"
+#include "fixed_queue.nh"
 
 class fixed_queue_test : public testing::Test {
 protected:
