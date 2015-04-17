@@ -121,6 +121,7 @@ void send_all_messages(void) {
             context->error_count++;
             break;
         }
+        last_length = length;
 
         uint32_t key;
         uint64_t timestamp;
@@ -139,7 +140,7 @@ void send_all_messages(void) {
         header->timestamp = timestamp;
 
         if (send_buffer(context, key, buffer, (uint16_t) (payload_size + sizeof(struct header)))) {
-            APP_LOG(APP_LOG_LEVEL_DEBUG, "Sent at %ld", (uint32_t)(timestamp & 0x7fffffff));
+            APP_LOG(APP_LOG_LEVEL_DEBUG, "Sent at %ld%ld", (uint32_t)(timestamp >> 32), (uint32_t)(timestamp & 0x7fffffff));
             queue_tail(context->queue);
             context->count++;
             APP_LOG(APP_LOG_LEVEL_DEBUG, "Sent; queue_length = %d\n", queue_length(context->queue));
