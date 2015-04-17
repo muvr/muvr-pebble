@@ -120,7 +120,7 @@ static void send_message(const uint32_t key, const uint8_t* payload_buffer, cons
         header->timestamp = timestamp;
 
         if (send_buffer(context, key, message_buffer, (uint16_t) (size + sizeof(struct header)))) {
-            APP_LOG(APP_LOG_LEVEL_DEBUG, "send_message: sent %d samples, reported duration %d, at %ld", header->count, header->duration, (uint32_t)(timestamp & 0x7fffffff));
+            APP_LOG(APP_LOG_LEVEL_DEBUG, "send_message: sent %d samples, reported duration %d, at %lu", header->count, header->duration, (uint32_t)(timestamp & 0x7fffffff));
             context->count++;
             break;
         } else {
