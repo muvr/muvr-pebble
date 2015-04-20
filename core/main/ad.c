@@ -68,7 +68,7 @@ static void ad_raw_accel_data_handler(AccelRawData *data, uint32_t num_samples, 
             APP_LOG(APP_LOG_LEVEL_DEBUG, "%d samples, %d reported duration", ad_context.buffer_position / sizeof(struct threed_data), duration);
         }
         ad_context.buffer_position = 0;
-        ad_context.start_time = TIME_NAN;
+        ad_context.start_time = timestamp;
     }
 }
 
