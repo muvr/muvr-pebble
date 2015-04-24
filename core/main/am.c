@@ -27,6 +27,7 @@ struct am_context_t {
     uint8_t type;
     uint8_t sample_size;
     uint8_t samples_per_second;
+    uint8_t sequence_number;
 };
 
 static char *get_error_text(int code, char *result, size_t size) {
@@ -115,7 +116,8 @@ static void send_message(const uint32_t key, const uint8_t* payload_buffer, cons
         header->samples_per_second = context->samples_per_second;
         header->sample_size = context->sample_size;
         header->count = (uint8_t) (size / context->sample_size);
-        header->queue_size = 0;
+        header->device_id = 0;
+        header->sequence_number = context->sequence_number;
         header->duration = duration;
         header->timestamp = timestamp;
 
@@ -131,6 +133,7 @@ static void send_message(const uint32_t key, const uint8_t* payload_buffer, cons
         }
     }
     free(message_buffer);
+    context->sequence_number++;
     context->send_in_progress = false;
 }
 
@@ -152,6 +155,7 @@ message_callback_t am_start(uint8_t type, uint8_t samples_per_second, uint8_t sa
     context->type = type;
     context->sample_size = sample_size;
     context->samples_per_second = samples_per_second;
+    context->sequence_number = 0;
     context->send_in_progress = false;
 
     app_message_set_context(context);

@@ -14,7 +14,9 @@ struct __attribute__((__packed__)) header {
     uint8_t count;                  // 2
     uint8_t samples_per_second;     // 3
     uint8_t sample_size;            // 4
-    uint8_t queue_size;             // 5
+    uint8_t device_id;              // 5
+    /// the sequence counter (being uint8_t, it means that we fail to spot errors that are multiples of 256 errors apart)
+    uint8_t  sequence_number;       // 6
     uint64_t timestamp;             // 13
     uint16_t duration;              // 15
 };

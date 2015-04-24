@@ -45,10 +45,10 @@ TEST_F(am_test, trivial) {
     uint8_t buf[] = {1, 1, 2, 2, 3, 3};
     callback(buf, 6, 0, 0);
     auto data = pebble::mocks::app_messages()->last_dict().get<std::vector<uint8_t>>(0xface0fb0);
-    bytes_equal<uint8_t>(data, { 123, 3, 100, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 3, 3 });
+    bytes_equal<uint8_t>(data, { 123, 3, 100, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 3, 3 });
     am_stop();
     data = pebble::mocks::app_messages()->last_dict().get<std::vector<uint8_t>>(0x0000dead);
-    bytes_equal<uint8_t>(data, { 123, 0, 100, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 });
+    bytes_equal<uint8_t>(data, { 123, 0, 100, 2, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 });
 }
 
 /*
