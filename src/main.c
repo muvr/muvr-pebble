@@ -53,9 +53,9 @@ static void app_message_received(DictionaryIterator *iterator, void *context) {
 }
 
 static void init(void) {
-    app_message_register_inbox_received(app_message_received);
     main_ctx.rex_window = rex_init();
     window_stack_push(main_ctx.rex_window, true);
+    app_message_register_inbox_received(app_message_received);
 
     main_ctx.message_callback = am_start(0xad, 50, 5);
     ad_start(main_ctx.message_callback, AD_SAMPLING_50HZ, 2050);

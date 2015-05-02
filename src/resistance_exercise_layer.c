@@ -139,8 +139,6 @@ static void window_load(Window *window) {
     Layer *window_layer = window_get_root_layer(window);
     GRect bounds = layer_get_bounds(window_layer);
 
-    load_and_set_bitmap(RESOURCE_ID_NOTMOVING);
-
     ui.action_bar = action_bar_layer_create();
     ui.text_layer = layer_create(bounds);
     layer_set_update_proc(ui.text_layer, text_layer_update_callback);
@@ -149,6 +147,7 @@ static void window_load(Window *window) {
     layer_add_child(window_layer, ui.text_layer);
 
     action_bar_layer_set_click_config_provider(ui.action_bar, (ClickConfigProvider)click_config_provider);
+    load_and_set_bitmap(RESOURCE_ID_NOTMOVING);
 }
 
 static void window_unload(Window *window) {
@@ -157,6 +156,8 @@ static void window_unload(Window *window) {
 }
 
 Window* rex_init(void) {
+    zero();
+    ui.bitmap = NULL;
     Window *window = window_create();
     window_set_window_handlers(window, (WindowHandlers) {
             .load = window_load,
