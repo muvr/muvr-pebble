@@ -9,16 +9,19 @@ static struct {
 } main_ctx;
 
 static void accepted(const uint8_t index) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "accepted(%d)", index);
     ad_start(main_ctx.message_callback, AD_SAMPLING_50HZ, 2050);
     rex_not_moving();
 }
 
 static void rejected(void) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "rejected()");
     ad_start(main_ctx.message_callback, AD_SAMPLING_50HZ, 2050);
     rex_not_moving();
 }
 
 static void timed_out(const uint8_t index) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "timed_out(%d)", index);
     ad_start(main_ctx.message_callback, AD_SAMPLING_50HZ, 2050);
     rex_not_moving();
 }

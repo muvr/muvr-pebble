@@ -2,9 +2,10 @@
 #include "resistance_exercise_layer.h"
 
 #define RESISTANCE_EXERCISES_MAX 8
-#define TIMER_MS 1000
+#define TIMER_MS 75
+#define COUNTER_ZERO 130
 
-#define MIN(a, b) ((a > b) ? a : b)
+#define MIN(a, b) ((a < b) ? a : b)
 
 static struct {
     GBitmap *bitmap;
@@ -38,16 +39,19 @@ static void zero() {
 }
 
 static void accept_once(const uint8_t index) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "accept_once");
     if (callbacks.accepted != NULL) callbacks.accepted(index);
     zero();
 }
 
 static void reject_once(void) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "reject_once");
     if (callbacks.rejected != NULL) callbacks.rejected();
     zero();
 }
 
 static void timed_out_once(const uint8_t index) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "timed_out_once");
     if (callbacks.timed_out != NULL) callbacks.timed_out(index);
     zero();
 }
@@ -66,7 +70,7 @@ static void load_and_set_bitmap(uint32_t resource_id) {
 
 static void draw_progress_bar(GContext *context, uint8_t y, uint8_t counter) {
     GPoint start = {.x = 5, .y = y};
-    GPoint end = {.x = selection.counter * 10, .y = y};
+    GPoint end   = {.x = start.x + selection.counter, .y = y};
     graphics_context_set_stroke_color(context, GColorWhite);
     graphics_draw_line(context, start, end);
 
@@ -98,11 +102,17 @@ static void text_layer_update_callback(Layer *layer, GContext *context) {
 }
 
 static void down_single_click_handler(ClickRecognizerRef recognizer, void *context) {
+    selection.counter = COUNTER_ZERO;
     if (selection.index < resistance_exercises.count - 1) selection.index++;
+    layer_mark_dirty(ui.text_layer);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "selection.index = %d", selection.index);
 }
 
 static void up_single_click_handler(ClickRecognizerRef recognizer, void *context) {
+    selection.counter = COUNTER_ZERO;
     if (selection.index > 0) selection.index--;
+    layer_mark_dirty(ui.text_layer);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "selection.index = %d", selection.index);
 }
 
 static void select_single_click_handler(ClickRecognizerRef recognizer, void *context) {
@@ -188,9 +198,11 @@ void rex_classification_completed(resistance_exercise_t *exercises, uint8_t coun
         callbacks.rejected = rejected;
 
         resistance_exercises.count = MIN(RESISTANCE_EXERCISES_MAX, count);
-        memcpy(resistance_exercises.exercises, exercises, resistance_exercises.count);
-        selection.counter = 10;
+        memcpy(resistance_exercises.exercises, exercises, resistance_exercises.count * sizeof(resistance_exercise_t));
+        selection.counter = COUNTER_ZERO;
         selection.timer = app_timer_register(TIMER_MS, timer_callback, NULL);
+
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "r_e.count = %d", resistance_exercises.count);
     }
 }
 
