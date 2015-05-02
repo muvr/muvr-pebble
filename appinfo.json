@@ -1,8 +1,8 @@
 {
   "uuid": "E113DED8-0EA6-4397-90FA-CE40941F7CBC",
-  "shortName": "Lift",
-  "longName": "Lift",
-  "companyName": "Eigengo",
+  "shortName": "Muvr",
+  "longName": "Muvr",
+  "companyName": "Muvr",
   "versionCode": 2,
   "versionLabel": "2.0",
   "watchapp": {
@@ -10,7 +10,12 @@
   },
   "appKeys": {},
   "resources": {
-    "media": []
+    "media": [
+      {"type": "png", "name": "EXERCISING", "file": "exercising.png"},
+      {"type": "png", "name": "MOVING",     "file": "moving.png"},
+      {"type": "png", "name": "NOTMOVING",  "file": "notmoving.png"},
+      {"type": "png", "name": "CLASSCOMP",  "file": "classcomp.png"}
+    ]
   },
   "targetPlatforms": [
     "aplite",

@@ -1,4 +1,4 @@
-INCLUDE_DIRECTORIES(/usr/local/opt/pebble-sdk/libexec/Pebble/aplite/include)
+INCLUDE_DIRECTORIES(/usr/local/opt/pebble-sdk/Pebble/aplite/include)
 
 ADD_SUBDIRECTORY(main)
 ADD_SUBDIRECTORY(test)
