@@ -137,6 +137,31 @@ static void send_message(const uint32_t key, const uint8_t* payload_buffer, cons
     context->send_in_progress = false;
 }
 
+void am_send_simple(const uint32_t key, const uint8_t value) {
+    struct am_context_t *context = app_message_get_context();
+    if (context == NULL) return;
+    if (context->send_in_progress) {
+        APP_LOG(APP_LOG_LEVEL_ERROR, "send_message: dropped message.");
+        return;
+    }
+
+    context->send_in_progress = true;
+    for (int i = 0; i < 5; ++i) {
+        uint8_t message_buffer[1] = {value};
+        if (send_buffer(context, key, message_buffer, 1)) {
+            APP_LOG(APP_LOG_LEVEL_DEBUG, "am_send_simple: sent.");
+            context->count++;
+            break;
+        } else {
+            char err[20];
+            get_error_text(context->last_error, err, 20);
+            APP_LOG(APP_LOG_LEVEL_DEBUG, "send_message: not sent: %s", err);
+            psleep(200);
+        }
+    }
+    context->send_in_progress = false;
+}
+
 void sample_callback(const uint8_t* payload_buffer, const uint16_t size, const uint64_t timestamp, const uint16_t duration) {
     send_message(0xface0fb0, payload_buffer, size, timestamp, duration);
 }
