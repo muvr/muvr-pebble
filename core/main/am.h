@@ -38,6 +38,11 @@ void am_stop();
 ///
 void am_get_status(char *text, uint16_t max_size);
 
+///
+/// Send a simple message with the ke & value
+///
+void am_send_simple(const uint32_t key, const uint8_t value);
+
 #ifdef __cplusplus
 }
 #endif
