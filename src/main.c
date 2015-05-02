@@ -1,5 +1,4 @@
 #include <pebble.h>
-#include "pebble.h"
 #include "../core/main/ad.h"
 #include "../core/main/am.h"
 #include "resistance_exercise_layer.h"

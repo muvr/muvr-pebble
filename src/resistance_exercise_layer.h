@@ -20,8 +20,8 @@ typedef uint16_t weight_t;
 #define UNK_INTENSITY 255
 #define UNK_WEIGHT 65535
 
-typedef struct {
-    char name[64];
+typedef struct __attribute__((__packed__)) {
+    char name[24];
     confidence_t  confidence;       // 0..100
     repetitions_t repetitions;      // 1..~50,  UNK_REPETITIONS for unknown
     intensity_t   intensity;        // 1..100,  UNK_INTENSITY for unknown
