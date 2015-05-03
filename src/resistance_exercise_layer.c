@@ -41,6 +41,8 @@ static void zero() {
     callbacks.timed_out = NULL;
     selection.index = selection.counter = 0;
     resistance_exercises.count = 0;
+    if (selection.timer != NULL) app_timer_cancel(selection.timer);
+    selection.timer = NULL;
     action_bar_layer_remove_from_window(ui.action_bar);
 }
 
@@ -51,10 +53,9 @@ static void load_and_set_bitmap(uint32_t resource_id) {
         ui.bitmap = NULL;
     }
 
-    if (resource_id != 0) {
-        ui.bitmap = gbitmap_create_with_resource(resource_id);
-        layer_mark_dirty(ui.text_layer);
-    }
+    if (resource_id != 0) ui.bitmap = gbitmap_create_with_resource(resource_id);
+
+    layer_mark_dirty(ui.text_layer);
 }
 
 static void accept_once(const uint8_t index) {
@@ -94,26 +95,38 @@ static void draw_progress_bar(GContext *context, uint8_t y, uint8_t counter) {
 
 static void text_layer_update_callback(Layer *layer, GContext *context) {
     if (resistance_exercises.count > 0) {
+        resistance_exercise_t re = resistance_exercises.exercises[selection.index];
         graphics_context_set_text_color(context, GColorBlack);
         GRect bounds = layer_get_frame(layer);
 
-        uint8_t y = 50;
+        // the name
+        GFont *exercise_font = fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD);
+        GRect exercise_rect = GRect(5, 5, bounds.size.w - 10, 100);
+        char *exercise_text = re.name;
+        //GSize exercise_cs = graphics_text_layout_get_content_size(exercise_text, exercise_font, exercise_rect, GTextOverflowModeWordWrap, GTextAlignmentLeft);
+        graphics_draw_text(context, exercise_text, exercise_font, exercise_rect, GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
+
+        // the details
+        char header_text[30];
+        char x[10];
+        if (re.repetitions > 0) snprintf(x, 10, "%d reps\n", re.repetitions); else strcpy(x, "\n");
+        strcpy(header_text, x);
+
+        if (re.weight > 0) snprintf(x, 10, "%d kg", re.weight);
+        strcat(header_text, x);
+        graphics_draw_text(context, header_text, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD), GRect(5, 80, bounds.size.w - 10, 100), GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
+
+        // counter indicator
+        uint8_t y = 75;
         draw_progress_bar(context, y, selection.counter);
         draw_progress_bar(context, y + 1, selection.counter);
         draw_progress_bar(context, y + 2, selection.counter);
 
-        graphics_draw_text(context,
-                           resistance_exercises.exercises[selection.index].name,
-                           fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD),
-                           GRect(5, 5, bounds.size.w - 10, 100),
-                           GTextOverflowModeWordWrap,
-                           GTextAlignmentLeft,
-                           NULL);
     }
 
     if (ui.bitmap != NULL) {
         graphics_context_set_compositing_mode(context, GCompOpClear);
-        graphics_draw_bitmap_in_rect(context, ui.bitmap, GRect(15, 40, 120, 75));
+        graphics_draw_bitmap_in_rect(context, ui.bitmap, GRect(10, 40, 120, 75));
     }
 }
 
@@ -217,8 +230,6 @@ void rex_classification_completed(resistance_exercise_t *exercises, uint8_t coun
                                   classification_accepted_callback_t accepted,
                                   classification_timedout_callback_t timed_out,
                                   classification_rejected_callback_t rejected) {
-    load_and_set_bitmap(0);
-
     if (count == 0) {
         rejected();
     } else {
@@ -233,6 +244,9 @@ void rex_classification_completed(resistance_exercise_t *exercises, uint8_t coun
         selection.timer = app_timer_register(TIMER_MS, timer_callback, NULL);
 
         APP_LOG(APP_LOG_LEVEL_DEBUG, "r_e.count = %d", resistance_exercises.count);
+        
+        load_and_set_bitmap(0);
+        layer_mark_dirty(ui.text_layer);
     }
 }
 

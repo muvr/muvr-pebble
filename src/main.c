@@ -66,7 +66,7 @@ static void init(void) {
 #if 0
     resistance_exercise_t x[] = {
        {.name = "Bicep curl",   .repetitions = 10, .weight = 20},
-       {.name = "Tricep press", .repetitions = 10, .weight = 25}
+       {.name = "Tricep extension", .repetitions = 10, .weight = 25}
     };
     rex_classification_completed(x, 2, accepted, timed_out, rejected);
 #else
