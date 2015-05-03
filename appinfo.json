@@ -14,7 +14,8 @@
       {"type": "png", "name": "EXERCISING", "file": "exercising.png"},
       {"type": "png", "name": "MOVING",     "file": "moving.png"},
       {"type": "png", "name": "NOTMOVING",  "file": "notmoving.png"},
-      {"type": "png", "name": "CLASSCOMP",  "file": "classcomp.png"}
+      {"type": "png", "name": "THUMBSUP",   "file": "thumbsup.png"},
+      {"type": "png", "name": "THUMBSDOWN", "file": "thumbsdown.png"}
     ]
   },
   "targetPlatforms": [

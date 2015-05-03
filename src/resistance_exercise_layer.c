@@ -38,24 +38,6 @@ static void zero() {
     resistance_exercises.count = 0;
 }
 
-static void accept_once(const uint8_t index) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "accept_once");
-    if (callbacks.accepted != NULL) callbacks.accepted(index);
-    zero();
-}
-
-static void reject_once(void) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "reject_once");
-    if (callbacks.rejected != NULL) callbacks.rejected();
-    zero();
-}
-
-static void timed_out_once(const uint8_t index) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "timed_out_once");
-    if (callbacks.timed_out != NULL) callbacks.timed_out(index);
-    zero();
-}
-
 static void load_and_set_bitmap(uint32_t resource_id) {
     if (ui.bitmap != NULL) {
         gbitmap_destroy(ui.bitmap);
@@ -66,6 +48,33 @@ static void load_and_set_bitmap(uint32_t resource_id) {
         ui.bitmap = gbitmap_create_with_resource(resource_id);
         layer_mark_dirty(ui.text_layer);
     }
+}
+
+static void accept_once(const uint8_t index) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "accept_once");
+    if (callbacks.accepted != NULL) {
+        load_and_set_bitmap(RESOURCE_ID_THUMBSUP);
+        callbacks.accepted(index);
+    }
+    zero();
+}
+
+static void reject_once(void) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "reject_once");
+    if (callbacks.rejected != NULL) {
+        load_and_set_bitmap(RESOURCE_ID_THUMBSDOWN);
+        callbacks.rejected();
+    }
+    zero();
+}
+
+static void timed_out_once(const uint8_t index) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "timed_out_once");
+    if (callbacks.timed_out != NULL) {
+        load_and_set_bitmap(RESOURCE_ID_THUMBSUP);
+        callbacks.timed_out(index);
+    }
+    zero();
 }
 
 static void draw_progress_bar(GContext *context, uint8_t y, uint8_t counter) {
@@ -97,7 +106,7 @@ static void text_layer_update_callback(Layer *layer, GContext *context) {
 
     if (ui.bitmap != NULL) {
         graphics_context_set_compositing_mode(context, GCompOpOr);
-        graphics_draw_bitmap_in_rect(context, ui.bitmap, GRect(15, 70, 120, 75));
+        graphics_draw_bitmap_in_rect(context, ui.bitmap, GRect(15, 40, 120, 75));
     }
 }
 

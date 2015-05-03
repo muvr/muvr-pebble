@@ -8,25 +8,27 @@ static struct {
     message_callback_t message_callback;
 } main_ctx;
 
+static void start(void *data) {
+    ad_start(main_ctx.message_callback, AD_SAMPLING_50HZ, 2050);
+    rex_not_moving();
+}
+
 static void accepted(const uint8_t index) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "accepted(%d)", index);
     am_send_simple(0xb0000003, index);
-    ad_start(main_ctx.message_callback, AD_SAMPLING_50HZ, 2050);
-    rex_not_moving();
+    app_timer_register(1500, start, NULL);
 }
 
 static void timed_out(const uint8_t index) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "timed_out(%d)", index);
     am_send_simple(0xb1000003, index);
-    ad_start(main_ctx.message_callback, AD_SAMPLING_50HZ, 2050);
-    rex_not_moving();
+    app_timer_register(1500, start, NULL);
 }
 
 static void rejected(void) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "rejected()");
     am_send_simple(0xb2000003, 0);
-    ad_start(main_ctx.message_callback, AD_SAMPLING_50HZ, 2050);
-    rex_not_moving();
+    app_timer_register(1500, start, NULL);
 }
 
 static void app_message_received(DictionaryIterator *iterator, void *context) {
@@ -44,6 +46,7 @@ static void app_message_received(DictionaryIterator *iterator, void *context) {
                 return;
             case 0xa0000003: // classified
                 ad_stop();
+                vibes_double_pulse();
                 resistance_exercise_t *res = (resistance_exercise_t*)t->value->data;
                 uint8_t count = t->length / sizeof(resistance_exercise_t);
 
@@ -60,7 +63,7 @@ static void init(void) {
     app_message_register_inbox_received(app_message_received);
 
     main_ctx.message_callback = am_start(0xad, 50, 5);
-    ad_start(main_ctx.message_callback, AD_SAMPLING_50HZ, 2050);
+    start(NULL);
 #if 0
     resistance_exercise_t x[] = {
        {.name = "Bicep curl",   .repetitions = 10, .weight = 20},
