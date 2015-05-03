@@ -63,13 +63,14 @@ static void init(void) {
     app_message_register_inbox_received(app_message_received);
 
     main_ctx.message_callback = am_start(0xad, 50, 5);
-    start(NULL);
 #if 0
     resistance_exercise_t x[] = {
        {.name = "Bicep curl",   .repetitions = 10, .weight = 20},
        {.name = "Tricep press", .repetitions = 10, .weight = 25}
     };
     rex_classification_completed(x, 2, accepted, timed_out, rejected);
+#else
+    start(NULL);
 #endif
 }
 

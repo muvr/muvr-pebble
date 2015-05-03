@@ -15,7 +15,10 @@
       {"type": "png", "name": "MOVING",     "file": "moving.png"},
       {"type": "png", "name": "NOTMOVING",  "file": "notmoving.png"},
       {"type": "png", "name": "THUMBSUP",   "file": "thumbsup.png"},
-      {"type": "png", "name": "THUMBSDOWN", "file": "thumbsdown.png"}
+      {"type": "png", "name": "THUMBSDOWN", "file": "thumbsdown.png"},
+      {"type": "png", "name": "UP",         "file": "up.png"},
+      {"type": "png", "name": "DOWN",       "file": "down.png"},
+      {"type": "png", "name": "SELECT",     "file": "select.png"}
     ]
   },
   "targetPlatforms": [
