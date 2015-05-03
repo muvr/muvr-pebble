@@ -244,7 +244,7 @@ void rex_classification_completed(resistance_exercise_t *exercises, uint8_t coun
         selection.timer = app_timer_register(TIMER_MS, timer_callback, NULL);
 
         APP_LOG(APP_LOG_LEVEL_DEBUG, "r_e.count = %d", resistance_exercises.count);
-        
+
         load_and_set_bitmap(0);
         layer_mark_dirty(ui.text_layer);
     }
