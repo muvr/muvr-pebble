@@ -122,9 +122,7 @@ static void text_layer_update_callback(Layer *layer, GContext *context) {
         draw_progress_bar(context, y + 1, selection.counter);
         draw_progress_bar(context, y + 2, selection.counter);
 
-    }
-
-    if (ui.bitmap != NULL) {
+    } else if (ui.bitmap != NULL) {
         graphics_context_set_compositing_mode(context, GCompOpClear);
         graphics_draw_bitmap_in_rect(context, ui.bitmap, GRect(10, 40, 120, 75));
     }
