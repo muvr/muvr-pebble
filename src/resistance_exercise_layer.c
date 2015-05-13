@@ -41,6 +41,7 @@ static void zero() {
     callbacks.rejected = NULL;
     callbacks.timed_out = NULL;
     selection.index = selection.counter = 0;
+    ui.current_exercise = NULL;
     resistance_exercises.count = 0;
     if (selection.timer != NULL) app_timer_cancel(selection.timer);
     selection.timer = NULL;
@@ -126,7 +127,7 @@ static void text_layer_update_callback(Layer *layer, GContext *context) {
 
     } else if (ui.bitmap != NULL) {
         graphics_context_set_compositing_mode(context, GCompOpClear);
-        graphics_draw_bitmap_in_rect(context, ui.bitmap, GRect(10, 40, 120, 75));
+        graphics_draw_bitmap_in_rect(context, ui.bitmap, GRect(10, 60, 120, 75));
     }
 
     if (ui.current_exercise != NULL) {
@@ -209,9 +210,7 @@ static void window_unload(Window *window) {
 
 Window* rex_init(void) {
     zero();
-    ui.current_exercise = NULL;
     ui.bitmap = NULL;
-    ui.current_exercise = NULL;
     ui.window = window_create();
     window_set_window_handlers(ui.window, (WindowHandlers) {
             .load = window_load,
