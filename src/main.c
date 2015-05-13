@@ -52,6 +52,9 @@ static void app_message_received(DictionaryIterator *iterator, void *context) {
 
                 rex_classification_completed(res, count, accepted, timed_out, rejected);
                 return;
+            case 0xa0000004: // next up
+            	rex_set_current((resistance_exercise_t*)t->value->data);
+            	return;
         }
         t = dict_read_next(iterator);
     }
@@ -68,7 +71,8 @@ static void init(void) {
        {.name = "Bicep curl",   .repetitions = 10, .weight = 20},
        {.name = "Tricep extension", .repetitions = 10, .weight = 25}
     };
-    rex_classification_completed(x, 2, accepted, timed_out, rejected);
+    rex_set_current(x);
+    //rex_classification_completed(x, 2, accepted, timed_out, rejected);
 #else
     start(NULL);
 #endif

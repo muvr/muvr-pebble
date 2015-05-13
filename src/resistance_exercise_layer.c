@@ -15,6 +15,7 @@ static struct {
     GBitmap *action_select_bitmap;
     Layer *text_layer;
     ActionBarLayer *action_bar;
+    resistance_exercise_t *current_exercise;
 } ui;
 
 static struct {
@@ -121,10 +122,22 @@ static void text_layer_update_callback(Layer *layer, GContext *context) {
         draw_progress_bar(context, y, selection.counter);
         draw_progress_bar(context, y + 1, selection.counter);
         draw_progress_bar(context, y + 2, selection.counter);
+        return;
 
     } else if (ui.bitmap != NULL) {
         graphics_context_set_compositing_mode(context, GCompOpClear);
         graphics_draw_bitmap_in_rect(context, ui.bitmap, GRect(10, 40, 120, 75));
+    }
+
+    if (ui.current_exercise != NULL) {
+        graphics_context_set_text_color(context, GColorBlack);
+        GRect bounds = layer_get_frame(layer);
+
+        // the name
+        GFont *exercise_font = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
+        GRect exercise_rect = GRect(5, 5, bounds.size.w - 10, 100);
+        char *exercise_text = ui.current_exercise->name;
+        graphics_draw_text(context, exercise_text, exercise_font, exercise_rect, GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
     }
 }
 
@@ -196,7 +209,9 @@ static void window_unload(Window *window) {
 
 Window* rex_init(void) {
     zero();
+    ui.current_exercise = NULL;
     ui.bitmap = NULL;
+    ui.current_exercise = NULL;
     ui.window = window_create();
     window_set_window_handlers(ui.window, (WindowHandlers) {
             .load = window_load,
@@ -222,6 +237,15 @@ static void timer_callback(void *data) {
         selection.timer = app_timer_register(TIMER_MS, timer_callback, NULL);
     }
     layer_mark_dirty(ui.text_layer);
+}
+
+void rex_set_current(resistance_exercise_t *exercise) {
+    if (exercise == NULL) {
+        ui.current_exercise = NULL;
+    }
+    static resistance_exercise_t current;
+    memcpy(&current, exercise, sizeof(resistance_exercise_t));
+    ui.current_exercise = &current;
 }
 
 void rex_classification_completed(resistance_exercise_t *exercises, uint8_t count,
