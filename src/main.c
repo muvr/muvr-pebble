@@ -113,6 +113,7 @@ static void init(void) {
     main_ctx.training = true;
 
     main_ctx.message_callback = am_start(0xad, 50, 5);
+    
 #if 0
     resistance_exercise_t x[] = {
        {.name = "Bicep curl",   .repetitions = 10, .weight = 20},
