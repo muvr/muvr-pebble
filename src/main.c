@@ -6,34 +6,43 @@
 static struct {
     Window *rex_window;
     bool exercising;
+    bool training;
     message_callback_t message_callback;
 } main_ctx;
 
 static void start(void *data) {
     ad_start(main_ctx.message_callback, AD_SAMPLING_50HZ, 2050);
     rex_not_moving();
+
     main_ctx.exercising = true;
+    if (main_ctx.training) rex_exercising();
 }
 
 static void accepted(const uint8_t index) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "accepted(%d)", index);
     am_send_simple(0xb0000003, index);
     app_timer_register(1500, start, NULL);
+
     main_ctx.exercising = true;
+    if (main_ctx.training) rex_exercising();
 }
 
 static void timed_out(const uint8_t index) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "timed_out(%d)", index);
     am_send_simple(0xb1000003, index);
     app_timer_register(1500, start, NULL);
+
     main_ctx.exercising = true;
+    if (main_ctx.training) rex_exercising();
 }
 
 static void rejected(void) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "rejected()");
     am_send_simple(0xb2000003, 0);
     app_timer_register(1500, start, NULL);
+
     main_ctx.exercising = true;
+    if (main_ctx.training) rex_exercising();
 }
 
 static void app_message_received(DictionaryIterator *iterator, void *context) {
@@ -60,6 +69,11 @@ static void app_message_received(DictionaryIterator *iterator, void *context) {
             case 0xa0000004: // next up
             	rex_set_current((resistance_exercise_t*)t->value->data);
             	return;
+
+            case 0xa0000005: // classifying mode
+                main_ctx.training = false;
+                accel_tap_service_unsubscribe();
+                start(NULL);
         }
         t = dict_read_next(iterator);
     }
@@ -72,6 +86,7 @@ static void tap_handler(AccelAxisType axis, int32_t direction) {
         // we are exercising; now's the time to stop
         APP_LOG(APP_LOG_LEVEL_DEBUG, "Stopping exercise.");
         ad_stop();
+        rex_not_moving();
         am_send_simple(0xb3000003, 0);
         main_ctx.exercising = false;
     } else {
@@ -95,6 +110,8 @@ static void init(void) {
     app_message_register_inbox_received(app_message_received);
 
     main_ctx.exercising = false;
+    main_ctx.training = true;
+
     main_ctx.message_callback = am_start(0xad, 50, 5);
 #if 0
     resistance_exercise_t x[] = {
