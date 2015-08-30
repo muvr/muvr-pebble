@@ -65,7 +65,7 @@ static void ad_raw_accel_data_handler(AccelRawData *data, uint32_t num_samples, 
         if (ad_context.callback != NULL) {
             ad_context.callback(ad_context.buffer, ad_context.buffer_position, timestamp, duration);
         } else {
-            APP_LOG(APP_LOG_LEVEL_DEBUG, "%d samples, %d reported duration", ad_context.buffer_position / sizeof(struct threed_data), duration);
+            APP_LOG(APP_LOG_LEVEL_DEBUG, "Not submitting %d samples, %d reported duration", ad_context.buffer_position / sizeof(struct threed_data), duration);
         }
         ad_context.buffer_position = 0;
         ad_context.start_time = timestamp;
