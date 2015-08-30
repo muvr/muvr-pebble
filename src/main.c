@@ -130,6 +130,7 @@ static void deinit(void) {
     ad_stop();
     am_stop();
 
+    accel_tap_service_unsubscribe();
     window_destroy(main_ctx.rex_window);
 }
 

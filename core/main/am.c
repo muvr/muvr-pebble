@@ -108,7 +108,7 @@ static void send_message(const uint32_t key, const uint8_t* payload_buffer, cons
         EXIT(-3);
     }
 
-    uint8_t *message_buffer = malloc(APP_MESSAGE_OUTBOX_SIZE_MINIMUM);
+    uint8_t message_buffer[APP_MESSAGE_OUTBOX_SIZE_MINIMUM];
     memcpy(message_buffer + sizeof(struct header), payload_buffer, size);
     for (int i = 0; i < 5; ++i) {
         struct header *header = (struct header *) message_buffer;
@@ -132,7 +132,6 @@ static void send_message(const uint32_t key, const uint8_t* payload_buffer, cons
             psleep(200);
         }
     }
-    free(message_buffer);
     context->sequence_number++;
     context->send_in_progress = false;
 }
@@ -191,13 +190,15 @@ message_callback_t am_start(uint8_t type, uint8_t samples_per_second, uint8_t sa
 }
 
 void am_stop() {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "am_stop() stopping...");
+
     struct am_context_t *context = app_message_get_context();
 
     uint8_t buffer[1] = {0};
     send_message(0x0000dead, buffer, 1, 0, 0);
 
-    app_message_set_context(NULL);
     free(context);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "am_stop() stopped.");
 }
 
 __unused // not really, it's used in main.c
