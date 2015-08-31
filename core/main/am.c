@@ -136,6 +136,7 @@ static void send_message(const uint32_t key, const uint8_t* payload_buffer, cons
     context->send_in_progress = false;
 }
 
+__unused // not really, it's used in main.c
 void am_send_simple(const uint32_t key, const uint8_t value) {
     struct am_context_t *context = app_message_get_context();
     if (context == NULL) return;

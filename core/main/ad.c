@@ -77,7 +77,6 @@ int ad_start(const message_callback_t callback, const ad_sampling_rate_t frequen
 
     ad_context.callback = callback;
     ad_context.samples_per_second = (uint8_t) frequency;
-    //ad_context.buffer = malloc(AD_BUFFER_SIZE);
     ad_context.maximum_time = maximum_time;
     ad_context.start_time = TIME_NAN;
 
