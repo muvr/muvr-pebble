@@ -14,7 +14,7 @@ static struct {
     // the samples_per_second
     uint8_t samples_per_second;
     // the buffer
-    uint8_t* buffer;
+    uint8_t buffer[AD_BUFFER_SIZE];
     // the maximum time
     uint16_t maximum_time;
     // the position in the buffer
@@ -65,7 +65,7 @@ static void ad_raw_accel_data_handler(AccelRawData *data, uint32_t num_samples, 
         if (ad_context.callback != NULL) {
             ad_context.callback(ad_context.buffer, ad_context.buffer_position, timestamp, duration);
         } else {
-            APP_LOG(APP_LOG_LEVEL_DEBUG, "%d samples, %d reported duration", ad_context.buffer_position / sizeof(struct threed_data), duration);
+            APP_LOG(APP_LOG_LEVEL_DEBUG, "Not submitting %d samples, %d reported duration", ad_context.buffer_position / sizeof(struct threed_data), duration);
         }
         ad_context.buffer_position = 0;
         ad_context.start_time = timestamp;
@@ -77,7 +77,6 @@ int ad_start(const message_callback_t callback, const ad_sampling_rate_t frequen
 
     ad_context.callback = callback;
     ad_context.samples_per_second = (uint8_t) frequency;
-    ad_context.buffer = malloc(AD_BUFFER_SIZE);
     ad_context.maximum_time = maximum_time;
     ad_context.start_time = TIME_NAN;
 
@@ -91,7 +90,6 @@ int ad_start(const message_callback_t callback, const ad_sampling_rate_t frequen
 }
 
 int ad_stop() {
-    if (ad_context.buffer != NULL) free(ad_context.buffer);
     ad_context.callback = NULL;
     return 1;
 }
