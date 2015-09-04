@@ -13,7 +13,7 @@
  */
 struct am_context_t {
     // the number of packets sent
-    int count;
+    uint32_t count;
     // the last error code
     int last_error;
     // the number of packets sent since encountering error
@@ -22,9 +22,6 @@ struct am_context_t {
     int error_count;
     // transmission in progress
     bool send_in_progress;
-
-    // mask that gets changed on every call
-    uint32_t parity_mask;
 
     // the header fields
     uint8_t type;
@@ -76,6 +73,11 @@ static bool send_buffer(struct am_context_t *context, const uint32_t key, const 
 
         return false;
     }
+    if ((dictionary_result = dict_write_int32(message, 0x0c000000, context->count)) != DICT_OK) {
+        context->last_error = -DICT_W_CODE - dictionary_result;
+
+        return false;
+    }
 
     dict_write_end(message);
 
@@ -86,10 +88,6 @@ static bool send_buffer(struct am_context_t *context, const uint32_t key, const 
     }
 
     return true;
-}
-
-static void next_parity_mask(struct am_context_t *context) {
-    if (context->parity_mask == 0) context->parity_mask = 1; else context->parity_mask = 0;
 }
 
 static void send_message(const uint32_t key, const uint8_t* payload_buffer, const uint16_t size, const uint64_t timestamp, const uint16_t duration) {
@@ -109,7 +107,6 @@ static void send_message(const uint32_t key, const uint8_t* payload_buffer, cons
         EXIT(-3);
     }
 
-    next_parity_mask(context);
     uint8_t message_buffer[APP_MESSAGE_OUTBOX_SIZE_MINIMUM];
     memcpy(message_buffer + sizeof(struct header), payload_buffer, size);
     for (int i = 0; i < 5; ++i) {
@@ -123,7 +120,7 @@ static void send_message(const uint32_t key, const uint8_t* payload_buffer, cons
         header->duration = duration;
         header->timestamp = timestamp;
 
-        if (send_buffer(context, key | context->parity_mask, message_buffer, (uint16_t) (size + sizeof(struct header)))) {
+        if (send_buffer(context, key, message_buffer, (uint16_t) (size + sizeof(struct header)))) {
             APP_LOG(APP_LOG_LEVEL_DEBUG, "send_message: sent %d samples, reported duration %d, at %lu", header->count, header->duration, (uint32_t)(timestamp & 0x7fffffff));
             context->count++;
             break;
@@ -146,12 +143,11 @@ void am_send_simple(const msgkey_t key, const uint8_t value) {
         APP_LOG(APP_LOG_LEVEL_ERROR, "send_message: dropped message.");
         return;
     }
-    next_parity_mask(context);
 
     context->send_in_progress = true;
     for (int i = 0; i < 5; ++i) {
         uint8_t message_buffer[1] = {value};
-        if (send_buffer(context, key | context->parity_mask, message_buffer, 1)) {
+        if (send_buffer(context, key, message_buffer, 1)) {
             APP_LOG(APP_LOG_LEVEL_DEBUG, "am_send_simple: sent.");
             context->count++;
             break;
@@ -213,7 +209,7 @@ void am_get_status(char *text, uint16_t max_size) {
     } else {
         char error_text[16];
         get_error_text(context->last_error, error_text, 16);
-        snprintf(text, max_size, "C: %d\nLE: %d %s\nLED: %d\nEC: %d\nUB: %d",
+        snprintf(text, max_size, "C: %ld\nLE: %d %s\nLED: %d\nEC: %d\nUB: %d",
                  context->count,
                  context->last_error, error_text, context->last_error_distance, context->error_count,
                  (int)heap_bytes_used());

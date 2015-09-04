@@ -9,10 +9,10 @@ extern "C" {
 typedef enum {
     msg_dead               = 0xdead0000,
     msg_ad                 = 0xad000000,
-    msg_accepted           = 0x00000000,
-    msg_timed_out          = 0x01000000,
-    msg_rejected           = 0x02000000,
-    msg_training_completed = 0x03000000
+    msg_accepted           = 0x01000000,
+    msg_timed_out          = 0x02000000,
+    msg_rejected           = 0x03000000,
+    msg_training_completed = 0x04000000
 } msgkey_t;
 
 /**
