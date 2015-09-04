@@ -23,6 +23,9 @@ struct am_context_t {
     // transmission in progress
     bool send_in_progress;
 
+    // mask that gets changed on every call
+    uint32_t parity_mask;
+
     // the header fields
     uint8_t type;
     uint8_t sample_size;
@@ -62,8 +65,6 @@ static bool send_buffer(struct am_context_t *context, const uint32_t key, const 
     DictionaryIterator *message;
     AppMessageResult app_message_result;
     if ((app_message_result = app_message_outbox_begin(&message)) != APP_MSG_OK) {
-        //context->error_count++;
-        //context->last_error_distance = 0;
         context->last_error = -OUTB_B_CODE - app_message_result;
 
         return false;
@@ -71,8 +72,6 @@ static bool send_buffer(struct am_context_t *context, const uint32_t key, const 
 
     DictionaryResult dictionary_result;
     if ((dictionary_result = dict_write_data(message, key, buffer, size)) != DICT_OK) {
-        //context->error_count++;
-        //context->last_error_distance = 0;
         context->last_error = -DICT_W_CODE - dictionary_result;
 
         return false;
@@ -81,14 +80,16 @@ static bool send_buffer(struct am_context_t *context, const uint32_t key, const 
     dict_write_end(message);
 
     if ((app_message_result = app_message_outbox_send()) != APP_MSG_OK) {
-        //context->error_count++;
-        //context->last_error_distance = 0;
         context->last_error = -OUTB_S_CODE - app_message_result;
 
         return false;
     }
 
     return true;
+}
+
+static void next_parity_mask(struct am_context_t *context) {
+    if (context->parity_mask == 0) context->parity_mask = 1; else context->parity_mask = 0;
 }
 
 static void send_message(const uint32_t key, const uint8_t* payload_buffer, const uint16_t size, const uint64_t timestamp, const uint16_t duration) {
@@ -108,6 +109,7 @@ static void send_message(const uint32_t key, const uint8_t* payload_buffer, cons
         EXIT(-3);
     }
 
+    next_parity_mask(context);
     uint8_t message_buffer[APP_MESSAGE_OUTBOX_SIZE_MINIMUM];
     memcpy(message_buffer + sizeof(struct header), payload_buffer, size);
     for (int i = 0; i < 5; ++i) {
@@ -121,7 +123,7 @@ static void send_message(const uint32_t key, const uint8_t* payload_buffer, cons
         header->duration = duration;
         header->timestamp = timestamp;
 
-        if (send_buffer(context, key, message_buffer, (uint16_t) (size + sizeof(struct header)))) {
+        if (send_buffer(context, key | context->parity_mask, message_buffer, (uint16_t) (size + sizeof(struct header)))) {
             APP_LOG(APP_LOG_LEVEL_DEBUG, "send_message: sent %d samples, reported duration %d, at %lu", header->count, header->duration, (uint32_t)(timestamp & 0x7fffffff));
             context->count++;
             break;
@@ -137,18 +139,19 @@ static void send_message(const uint32_t key, const uint8_t* payload_buffer, cons
 }
 
 __unused // not really, it's used in main.c
-void am_send_simple(const uint32_t key, const uint8_t value) {
+void am_send_simple(const msgkey_t key, const uint8_t value) {
     struct am_context_t *context = app_message_get_context();
     if (context == NULL) return;
     if (context->send_in_progress) {
         APP_LOG(APP_LOG_LEVEL_ERROR, "send_message: dropped message.");
         return;
     }
+    next_parity_mask(context);
 
     context->send_in_progress = true;
     for (int i = 0; i < 5; ++i) {
         uint8_t message_buffer[1] = {value};
-        if (send_buffer(context, key, message_buffer, 1)) {
+        if (send_buffer(context, key | context->parity_mask, message_buffer, 1)) {
             APP_LOG(APP_LOG_LEVEL_DEBUG, "am_send_simple: sent.");
             context->count++;
             break;
@@ -163,7 +166,7 @@ void am_send_simple(const uint32_t key, const uint8_t value) {
 }
 
 void sample_callback(const uint8_t* payload_buffer, const uint16_t size, const uint64_t timestamp, const uint16_t duration) {
-    send_message(0xface0fb0, payload_buffer, size, timestamp, duration);
+    send_message(msg_ad, payload_buffer, size, timestamp, duration);
 }
 
 static void send_failed(DictionaryIterator __unused *iterator, AppMessageResult __unused reason, void __unused *context) {
@@ -196,7 +199,7 @@ void am_stop() {
     struct am_context_t *context = app_message_get_context();
 
     uint8_t buffer[1] = {0};
-    send_message(0x0000dead, buffer, 1, 0, 0);
+    send_message(msg_dead, buffer, 1, 0, 0);
 
     free(context);
     APP_LOG(APP_LOG_LEVEL_DEBUG, "am_stop() stopped.");
