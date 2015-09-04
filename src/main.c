@@ -20,7 +20,7 @@ static void start(void *data) {
 
 static void accepted(const uint8_t index) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "accepted(%d)", index);
-    am_send_simple(0xb0000003, index);
+    am_send_simple(msg_accepted, index);
     app_timer_register(1500, start, NULL);
 
     main_ctx.exercising = true;
@@ -29,7 +29,7 @@ static void accepted(const uint8_t index) {
 
 static void timed_out(const uint8_t index) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "timed_out(%d)", index);
-    am_send_simple(0xb1000003, index);
+    am_send_simple(msg_timed_out, index);
     app_timer_register(1500, start, NULL);
 
     main_ctx.exercising = true;
@@ -38,7 +38,7 @@ static void timed_out(const uint8_t index) {
 
 static void rejected(void) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "rejected()");
-    am_send_simple(0xb2000003, 0);
+    am_send_simple(msg_rejected, 0);
     app_timer_register(1500, start, NULL);
 
     main_ctx.exercising = true;
@@ -87,7 +87,7 @@ static void tap_handler(AccelAxisType axis, int32_t direction) {
         APP_LOG(APP_LOG_LEVEL_DEBUG, "Stopping exercise.");
         ad_stop();
         rex_not_moving();
-        am_send_simple(0xb3000003, 0);
+        am_send_simple(msg_training_completed, 0);
         main_ctx.exercising = false;
     } else {
         APP_LOG(APP_LOG_LEVEL_DEBUG, "Starting exercise.");

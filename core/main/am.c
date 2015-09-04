@@ -13,7 +13,7 @@
  */
 struct am_context_t {
     // the number of packets sent
-    int count;
+    uint32_t count;
     // the last error code
     int last_error;
     // the number of packets sent since encountering error
@@ -62,8 +62,6 @@ static bool send_buffer(struct am_context_t *context, const uint32_t key, const 
     DictionaryIterator *message;
     AppMessageResult app_message_result;
     if ((app_message_result = app_message_outbox_begin(&message)) != APP_MSG_OK) {
-        //context->error_count++;
-        //context->last_error_distance = 0;
         context->last_error = -OUTB_B_CODE - app_message_result;
 
         return false;
@@ -71,8 +69,11 @@ static bool send_buffer(struct am_context_t *context, const uint32_t key, const 
 
     DictionaryResult dictionary_result;
     if ((dictionary_result = dict_write_data(message, key, buffer, size)) != DICT_OK) {
-        //context->error_count++;
-        //context->last_error_distance = 0;
+        context->last_error = -DICT_W_CODE - dictionary_result;
+
+        return false;
+    }
+    if ((dictionary_result = dict_write_int32(message, 0x0c000000, context->count)) != DICT_OK) {
         context->last_error = -DICT_W_CODE - dictionary_result;
 
         return false;
@@ -81,8 +82,6 @@ static bool send_buffer(struct am_context_t *context, const uint32_t key, const 
     dict_write_end(message);
 
     if ((app_message_result = app_message_outbox_send()) != APP_MSG_OK) {
-        //context->error_count++;
-        //context->last_error_distance = 0;
         context->last_error = -OUTB_S_CODE - app_message_result;
 
         return false;
@@ -137,7 +136,7 @@ static void send_message(const uint32_t key, const uint8_t* payload_buffer, cons
 }
 
 __unused // not really, it's used in main.c
-void am_send_simple(const uint32_t key, const uint8_t value) {
+void am_send_simple(const msgkey_t key, const uint8_t value) {
     struct am_context_t *context = app_message_get_context();
     if (context == NULL) return;
     if (context->send_in_progress) {
@@ -163,7 +162,7 @@ void am_send_simple(const uint32_t key, const uint8_t value) {
 }
 
 void sample_callback(const uint8_t* payload_buffer, const uint16_t size, const uint64_t timestamp, const uint16_t duration) {
-    send_message(0xface0fb0, payload_buffer, size, timestamp, duration);
+    send_message(msg_ad, payload_buffer, size, timestamp, duration);
 }
 
 static void send_failed(DictionaryIterator __unused *iterator, AppMessageResult __unused reason, void __unused *context) {
@@ -196,7 +195,7 @@ void am_stop() {
     struct am_context_t *context = app_message_get_context();
 
     uint8_t buffer[1] = {0};
-    send_message(0x0000dead, buffer, 1, 0, 0);
+    send_message(msg_dead, buffer, 1, 0, 0);
 
     free(context);
     APP_LOG(APP_LOG_LEVEL_DEBUG, "am_stop() stopped.");
@@ -210,7 +209,7 @@ void am_get_status(char *text, uint16_t max_size) {
     } else {
         char error_text[16];
         get_error_text(context->last_error, error_text, 16);
-        snprintf(text, max_size, "C: %d\nLE: %d %s\nLED: %d\nEC: %d\nUB: %d",
+        snprintf(text, max_size, "C: %ld\nLE: %d %s\nLED: %d\nEC: %d\nUB: %d",
                  context->count,
                  context->last_error, error_text, context->last_error_distance, context->error_count,
                  (int)heap_bytes_used());
