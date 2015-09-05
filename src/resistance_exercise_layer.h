@@ -62,6 +62,8 @@ void rex_exercising(void);
 
 void rex_not_moving(void);
 
+void rex_empty(void);
+
 Window* rex_init(void);
 
 #ifdef __cplusplus

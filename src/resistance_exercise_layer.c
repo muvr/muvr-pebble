@@ -197,7 +197,7 @@ static void window_load(Window *window) {
     action_bar_layer_set_icon(ui.action_bar, BUTTON_ID_SELECT, ui.action_select_bitmap);
     action_bar_layer_set_icon(ui.action_bar, BUTTON_ID_DOWN, ui.action_down_bitmap);
 
-    load_and_set_bitmap(RESOURCE_ID_NOTMOVING);
+    // load_and_set_bitmap(RESOURCE_ID_NOTMOVING);
 }
 
 static void window_unload(Window *window) {
@@ -269,6 +269,11 @@ void rex_classification_completed(resistance_exercise_t *exercises, uint8_t coun
         load_and_set_bitmap(0);
         layer_mark_dirty(ui.text_layer);
     }
+}
+
+void rex_empty(void) {
+    load_and_set_bitmap(0);
+    layer_mark_dirty(ui.text_layer);
 }
 
 void rex_moving(void) {

@@ -4,12 +4,14 @@
 #include "resistance_exercise_layer.h"
 
 enum mode {
+    // not yet selected
+    mode_none,
     //  tap, select exercise, record data, tap to end;
-    mode_training = 0,
+    mode_training,
     // tap, exercise, tap, confirm classification results;
-    mode_assisted_classification = 1,
+    mode_assisted_classification,
     // move / exercise, upon completing exercise, confirm classification results.
-    mode_automatic_classification = 2
+    mode_automatic_classification
 };
 
 #define RESISTANCE_EXERCISE_MAX 128
@@ -33,8 +35,9 @@ static void start() {
 
 static void resume(void *data) {
     switch (main_ctx.mode) {
+        case mode_none: rex_empty(); break;
         case mode_automatic_classification: start(); break;
-        case mode_training: main_ctx.exercising = true; rex_exercising(); break;
+        case mode_training: main_ctx.exercising = true; start(); rex_exercising(); break;
         case mode_assisted_classification: main_ctx.exercising = false; rex_not_moving(); break;
     }
 }
@@ -94,13 +97,16 @@ static void app_message_received(DictionaryIterator *iterator, void *context) {
                        main_ctx.resistance_exercises_count * sizeof(resistance_exercise_t), res, t->length);
                 main_ctx.resistance_exercises_count += count;
                 }
+                rex_not_moving();
                 return;
             case 0xb1000000:
                 main_ctx.mode = mode_assisted_classification;
+                rex_not_moving();
                 return;
             case 0xb2000000:
                 main_ctx.mode = mode_automatic_classification;
                 accel_tap_service_unsubscribe();
+                rex_not_moving();
                 start();
                 return;
 
@@ -121,6 +127,7 @@ static void app_message_received(DictionaryIterator *iterator, void *context) {
  */
 static void tap_handler(AccelAxisType axis, int32_t direction) {
     if (main_ctx.mode == mode_automatic_classification) return;
+    if (main_ctx.mode == mode_none) return;
 
     vibes_double_pulse();
 
