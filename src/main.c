@@ -3,10 +3,19 @@
 #include "../core/main/am.h"
 #include "resistance_exercise_layer.h"
 
+enum mode {
+    //  tap, select exercise, record data, tap to end;
+    mode_training = 0,
+    // tap, exercise, tap, confirm classification results;
+    mode_assisted_classification = 1,
+    // move / exercise, upon completing exercise, confirm classification results.
+    mode_automatic_classification = 2
+};
+
 static struct {
     Window *rex_window;
     bool exercising;
-    bool training;
+    mode mode;
     message_callback_t message_callback;
 } main_ctx;
 
@@ -15,7 +24,7 @@ static void start(void *data) {
     rex_not_moving();
 
     main_ctx.exercising = true;
-    if (main_ctx.training) rex_exercising();
+    if (main_ctx.mode != mode_automatic_classification) rex_exercising();
 }
 
 static void accepted(const uint8_t index) {
@@ -24,7 +33,7 @@ static void accepted(const uint8_t index) {
     app_timer_register(1500, start, NULL);
 
     main_ctx.exercising = true;
-    if (main_ctx.training) rex_exercising();
+    if (main_ctx.mode != mode_automatic_classification) rex_exercising();
 }
 
 static void timed_out(const uint8_t index) {
@@ -33,7 +42,7 @@ static void timed_out(const uint8_t index) {
     app_timer_register(1500, start, NULL);
 
     main_ctx.exercising = true;
-    if (main_ctx.training) rex_exercising();
+    if (main_ctx.mode != mode_automatic_classification) rex_exercising();
 }
 
 static void rejected(void) {
@@ -42,7 +51,7 @@ static void rejected(void) {
     app_timer_register(1500, start, NULL);
 
     main_ctx.exercising = true;
-    if (main_ctx.training) rex_exercising();
+    if (main_ctx.mode != mode_automatic_classification) rex_exercising();
 }
 
 static void app_message_received(DictionaryIterator *iterator, void *context) {
