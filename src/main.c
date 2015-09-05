@@ -4,18 +4,24 @@
 #include "resistance_exercise_layer.h"
 
 enum mode {
+    // not yet selected
+    mode_none,
     //  tap, select exercise, record data, tap to end;
-    mode_training = 0,
+    mode_training,
     // tap, exercise, tap, confirm classification results;
-    mode_assisted_classification = 1,
+    mode_assisted_classification,
     // move / exercise, upon completing exercise, confirm classification results.
-    mode_automatic_classification = 2
+    mode_automatic_classification
 };
+
+#define RESISTANCE_EXERCISE_MAX 128
 
 static struct {
     Window *rex_window;
     bool exercising;
     enum mode mode;
+    resistance_exercise_t resistance_exercises[RESISTANCE_EXERCISE_MAX];
+    uint8_t resistance_exercises_count;
     message_callback_t message_callback;
 } main_ctx;
 
@@ -29,8 +35,9 @@ static void start() {
 
 static void resume(void *data) {
     switch (main_ctx.mode) {
+        case mode_none: rex_empty(); break;
         case mode_automatic_classification: start(); break;
-        case mode_training: main_ctx.exercising = true; rex_exercising(); break;
+        case mode_training: main_ctx.exercising = true; start(); rex_exercising(); break;
         case mode_assisted_classification: main_ctx.exercising = false; rex_not_moving(); break;
     }
 }
@@ -66,36 +73,40 @@ static void app_message_received(DictionaryIterator *iterator, void *context) {
     Tuple *t = dict_read_first(iterator);
     while (t != NULL) {
         switch (t->key) {
-            case 0xa0000000: // not moving
-                rex_not_moving();
-                return;
-            case 0xa0000001: // moving
-                rex_moving();
-                return;
-            case 0xa0000002: // exercising
-                rex_exercising();
-                return;
-            case 0xa0000003: // classified
+            case 0xa0000000: rex_not_moving(); return;
+            case 0xa0000001: rex_moving(); return;
+            case 0xa0000002: rex_exercising(); return;
+            case 0xa0000003:
                 ad_stop();
                 vibes_double_pulse();
-                resistance_exercise_t *res = (resistance_exercise_t*)t->value->data;
-                uint8_t count = t->length / sizeof(resistance_exercise_t);
-
-                rex_classification_completed(res, count, accepted, timed_out, rejected);
+                {
+                    resistance_exercise_t *res = (resistance_exercise_t *) t->value->data;
+                    uint8_t count = t->length / sizeof(resistance_exercise_t);
+                    rex_classification_completed(res, count, accepted, timed_out, rejected);
+                }
                 return;
-            case 0xa0000004: // next up
-            	rex_set_current((resistance_exercise_t*)t->value->data);
-            	return;
+            case 0xa0000004: rex_set_current((resistance_exercise_t*)t->value->data); return;
 
             case 0xb0000000:
                 main_ctx.mode = mode_training;
+                main_ctx.resistance_exercises_count = 0;
+            case 0xb0000001: {
+                resistance_exercise_t *res = (resistance_exercise_t *) t->value->data;
+                uint8_t count = t->length / sizeof(resistance_exercise_t);
+                memcpy(main_ctx.resistance_exercises +
+                       main_ctx.resistance_exercises_count * sizeof(resistance_exercise_t), res, t->length);
+                main_ctx.resistance_exercises_count += count;
+                }
+                rex_not_moving();
                 return;
-            case 0xb0000001:
+            case 0xb1000000:
                 main_ctx.mode = mode_assisted_classification;
+                rex_not_moving();
                 return;
-            case 0xb0000002:
+            case 0xb2000000:
                 main_ctx.mode = mode_automatic_classification;
                 accel_tap_service_unsubscribe();
+                rex_not_moving();
                 start();
                 return;
 
@@ -116,6 +127,7 @@ static void app_message_received(DictionaryIterator *iterator, void *context) {
  */
 static void tap_handler(AccelAxisType axis, int32_t direction) {
     if (main_ctx.mode == mode_automatic_classification) return;
+    if (main_ctx.mode == mode_none) return;
 
     vibes_double_pulse();
 
@@ -134,15 +146,7 @@ static void tap_handler(AccelAxisType axis, int32_t direction) {
     } else {
         APP_LOG(APP_LOG_LEVEL_DEBUG, "Starting exercise.");
         if (main_ctx.mode == mode_training) {
-            // we are not exercising; display suggestions.
-            resistance_exercise_t res[] = {
-                    {.name = "Lateral rise", .confidence = 1, .repetitions = UNK_REPETITIONS, .weight = UNK_WEIGHT, .intensity = UNK_INTENSITY},
-                    {.name = "Triceps extension", .confidence = 1, .repetitions = UNK_REPETITIONS, .weight = UNK_WEIGHT, .intensity = UNK_INTENSITY},
-                    {.name = "Biceps curl", .confidence = 1, .repetitions = UNK_REPETITIONS, .weight = UNK_WEIGHT, .intensity = UNK_INTENSITY}
-            };
-            uint8_t count = 3;
-
-            rex_classification_completed(res, count, accepted, timed_out, rejected);
+            rex_classification_completed(main_ctx.resistance_exercises, main_ctx.resistance_exercises_count, accepted, timed_out, rejected);
         } else if (main_ctx.mode == mode_assisted_classification) {
             start();
         }
@@ -157,6 +161,7 @@ static void init(void) {
 
     main_ctx.exercising = false;
     main_ctx.mode = mode_assisted_classification;
+    main_ctx.resistance_exercises_count = 0;
 
     main_ctx.message_callback = am_start(0xad, 50, 5);
     
