@@ -76,20 +76,24 @@ static void app_message_received(DictionaryIterator *iterator, void *context) {
             case 0xa0000003:
                 ad_stop();
                 vibes_double_pulse();
-                resistance_exercise_t *res = (resistance_exercise_t*)t->value->data;
-                uint8_t count = t->length / sizeof(resistance_exercise_t);
-                rex_classification_completed(res, count, accepted, timed_out, rejected);
+                {
+                    resistance_exercise_t *res = (resistance_exercise_t *) t->value->data;
+                    uint8_t count = t->length / sizeof(resistance_exercise_t);
+                    rex_classification_completed(res, count, accepted, timed_out, rejected);
+                }
                 return;
             case 0xa0000004: rex_set_current((resistance_exercise_t*)t->value->data); return;
 
             case 0xb0000000:
                 main_ctx.mode = mode_training;
-                main_ctx.resistance_exercise_count = 0;
-            case 0xb0000001:
-                resistance_exercise_t *res = (resistance_exercise_t*)t->value->data;
+                main_ctx.resistance_exercises_count = 0;
+            case 0xb0000001: {
+                resistance_exercise_t *res = (resistance_exercise_t *) t->value->data;
                 uint8_t count = t->length / sizeof(resistance_exercise_t);
-                memcpy(main_ctx.resistance_exercises + main_ctx.resistance_exercises_count * sizeof(resistance_exercise_t), res, t->length);
+                memcpy(main_ctx.resistance_exercises +
+                       main_ctx.resistance_exercises_count * sizeof(resistance_exercise_t), res, t->length);
                 main_ctx.resistance_exercises_count += count;
+                }
                 return;
             case 0xb1000000:
                 main_ctx.mode = mode_assisted_classification;
