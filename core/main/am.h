@@ -12,7 +12,8 @@ typedef enum {
     msg_accepted           = 0x01000000,
     msg_timed_out          = 0x02000000,
     msg_rejected           = 0x03000000,
-    msg_training_completed = 0x04000000
+    msg_training_completed = 0x04000000,
+    msg_exercise_completed = 0x05000000
 } msgkey_t;
 
 /**
