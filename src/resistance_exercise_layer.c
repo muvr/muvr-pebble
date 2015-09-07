@@ -114,7 +114,10 @@ static void text_layer_update_callback(Layer *layer, GContext *context) {
         if (re.repetitions != UNK_REPETITIONS) snprintf(x, 10, "%d reps\n", re.repetitions); else strcpy(x, "\n");
         strcpy(header_text, x);
 
-        if (re.weight != UNK_WEIGHT) snprintf(x, 10, "%d kg", re.weight);
+        if (re.weight != UNK_WEIGHT) snprintf(x, 10, "%d kg\n", re.weight);
+        strcat(header_text, x);
+
+        snprintf(x, 10,"%d%%", re.confidence);
         strcat(header_text, x);
         graphics_draw_text(context, header_text, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD), GRect(5, 80, bounds.size.w - 10, 100), GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
 
