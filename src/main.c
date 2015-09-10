@@ -23,7 +23,13 @@ static struct {
     resistance_exercise_t resistance_exercises[RESISTANCE_EXERCISE_MAX];
     uint8_t resistance_exercises_count;
     message_callback_t message_callback;
+    time_t vibes_start_time;
 } main_ctx;
+
+static void safe_vibes_double_pulse(void) {
+    time(&main_ctx.vibes_start_time);
+    vibes_double_pulse();
+}
 
 static void start() {
     ad_start(main_ctx.message_callback, AD_SAMPLING_50HZ, 2050);
@@ -78,7 +84,7 @@ static void app_message_received(DictionaryIterator *iterator, void *context) {
             case 0xa0000002: rex_exercising(); return;
             case 0xa0000003:
                 ad_stop();
-                vibes_double_pulse();
+                safe_vibes_double_pulse();
                 {
                     resistance_exercise_t *res = (resistance_exercise_t *) t->value->data;
                     uint8_t count = t->length / sizeof(resistance_exercise_t);
@@ -115,6 +121,14 @@ static void app_message_received(DictionaryIterator *iterator, void *context) {
     }
 }
 
+static bool is_vibrating(void) {
+    time_t now;
+    time(&now);
+    time_t diff = now - main_ctx.vibes_start_time;
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "%ld", diff);
+    return diff < 1;
+}
+
 /**
  * The tap behaviour depends on the mode and the state in main_ctx:
  *
@@ -126,10 +140,12 @@ static void app_message_received(DictionaryIterator *iterator, void *context) {
  *
  */
 static void tap_handler(AccelAxisType axis, int32_t direction) {
+    //if (axis != ACCEL_AXIS_Z) return;
     if (main_ctx.mode == mode_automatic_classification) return;
     if (main_ctx.mode == mode_none) return;
+    if (is_vibrating()) return;
 
-    vibes_double_pulse();
+    safe_vibes_double_pulse();
 
     if (main_ctx.exercising) {
         // we are exercising; now's the time to stop
@@ -162,6 +178,7 @@ static void init(void) {
     main_ctx.exercising = false;
     main_ctx.mode = mode_assisted_classification;
     main_ctx.resistance_exercises_count = 0;
+    main_ctx.vibes_start_time = 0;
 
     main_ctx.message_callback = am_start(0xad, 50, 5);
     
