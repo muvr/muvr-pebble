@@ -124,7 +124,7 @@ static void app_message_received(DictionaryIterator *iterator, void *context) {
 static bool is_vibrating(void) {
     time_t now;
     time(&now);
-    return now - main_ctx.vibes_start_time > 1000;
+    return false; //now - main_ctx.vibes_start_time < 1;
 }
 
 /**
@@ -138,6 +138,7 @@ static bool is_vibrating(void) {
  *
  */
 static void tap_handler(AccelAxisType axis, int32_t direction) {
+    //if (axis != ACCEL_AXIS_Z) return;
     if (main_ctx.mode == mode_automatic_classification) return;
     if (main_ctx.mode == mode_none) return;
     if (is_vibrating()) return;
