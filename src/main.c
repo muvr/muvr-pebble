@@ -124,7 +124,9 @@ static void app_message_received(DictionaryIterator *iterator, void *context) {
 static bool is_vibrating(void) {
     time_t now;
     time(&now);
-    return false; //now - main_ctx.vibes_start_time < 1;
+    time_t diff = now - main_ctx.vibes_start_time;
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "%ld", diff);
+    return diff < 1;
 }
 
 /**
