@@ -126,7 +126,7 @@ static bool is_vibrating(void) {
     time(&now);
     time_t diff = now - main_ctx.vibes_start_time;
     APP_LOG(APP_LOG_LEVEL_DEBUG, "%ld", diff);
-    return diff < 1;
+    return diff < 3;
 }
 
 /**
