@@ -3,6 +3,8 @@
 #include "../core/main/am.h"
 #include "resistance_exercise_layer.h"
 
+static void click_config_provider(void *context);
+
 enum mode {
     // not yet selected
     mode_none,
@@ -40,6 +42,7 @@ static void start() {
 }
 
 static void resume(void *data) {
+    window_set_click_config_provider(main_ctx.rex_window, click_config_provider);
     switch (main_ctx.mode) {
         case mode_none: rex_empty(); break;
         case mode_automatic_classification: start(); break;
@@ -130,7 +133,7 @@ static bool is_vibrating(void) {
 }
 
 /**
- * The tap behaviour depends on the mode and the state in main_ctx:
+ * The back button behaviour depends on the mode and the state in main_ctx:
  *
  * - if mode == mode_automatic_classification, do nothing
  * - if mode == mode_training && exercising: stop exercise, send training_completed
@@ -139,11 +142,9 @@ static bool is_vibrating(void) {
  * - if mode == mode_assisted_classification && !exercising: start exercise
  *
  */
-static void tap_handler(AccelAxisType axis, int32_t direction) {
-    //if (axis != ACCEL_AXIS_Z) return;
+static void back_click_handler(ClickRecognizerRef recognizer, void *context) {
     if (main_ctx.mode == mode_automatic_classification) return;
     if (main_ctx.mode == mode_none) return;
-    if (is_vibrating()) return;
 
     safe_vibes_double_pulse();
 
@@ -169,9 +170,14 @@ static void tap_handler(AccelAxisType axis, int32_t direction) {
     }
 }
 
+static void click_config_provider(void *context) {
+    // Register the ClickHandlers
+    window_single_click_subscribe(BUTTON_ID_BACK, back_click_handler);
+}
+
 static void init(void) {
-    accel_tap_service_subscribe(tap_handler);
     main_ctx.rex_window = rex_init();
+    window_set_click_config_provider(main_ctx.rex_window, click_config_provider);
     window_stack_push(main_ctx.rex_window, true);
     app_message_register_inbox_received(app_message_received);
 
