@@ -34,6 +34,12 @@ typedef struct __attribute__((__packed__)) {
 typedef void (*classification_accepted_callback_t)(const uint8_t index);
 
 ///
+/// Callback that will be called when the classification UI has been dismissed and
+/// all handlers cleared
+///
+typedef void (*classification_dismissed_callback_t)(void);
+
+///
 /// Callback that will be called when the user rejects the exercise
 ///
 typedef void (*classification_rejected_callback_t)(void);
@@ -64,7 +70,7 @@ void rex_not_moving(void);
 
 void rex_empty(void);
 
-Window* rex_init(void);
+Window* rex_init(classification_dismissed_callback_t dismissed);
 
 #ifdef __cplusplus
 }

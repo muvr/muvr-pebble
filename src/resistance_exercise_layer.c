@@ -16,6 +16,7 @@ static struct {
     Layer *text_layer;
     ActionBarLayer *action_bar;
     resistance_exercise_t *current_exercise;
+    classification_dismissed_callback_t dismissed;
 } ui;
 
 static struct {
@@ -46,6 +47,7 @@ static void zero() {
     if (selection.timer != NULL) app_timer_cancel(selection.timer);
     selection.timer = NULL;
     action_bar_layer_remove_from_window(ui.action_bar);
+    if (ui.dismissed != NULL) ui.dismissed();
 }
 
 /// sets the main bitmap to be displayed
@@ -211,7 +213,8 @@ static void window_unload(Window *window) {
     gbitmap_destroy(ui.action_down_bitmap);
 }
 
-Window* rex_init(void) {
+Window* rex_init(classification_dismissed_callback_t dismissed) {
+    ui.dismissed = NULL;
     zero();
     ui.bitmap = NULL;
     ui.window = window_create();
@@ -219,6 +222,7 @@ Window* rex_init(void) {
             .load = window_load,
             .unload = window_unload
     });
+    ui.dismissed = dismissed;
 
 #ifdef PBL_COLOR
     window_set_background_color(ui.window, GColorWhite);

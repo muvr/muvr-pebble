@@ -4,6 +4,7 @@
 #include "resistance_exercise_layer.h"
 
 static void click_config_provider(void *context);
+static void back_click_handler(ClickRecognizerRef recognizer, void *context);
 
 enum mode {
     // not yet selected
@@ -33,7 +34,7 @@ static void safe_vibes_double_pulse(void) {
     vibes_double_pulse();
 }
 
-static void start() {
+static void start(void) {
     ad_start(main_ctx.message_callback, AD_SAMPLING_50HZ, 2050);
     rex_not_moving();
 
@@ -42,7 +43,6 @@ static void start() {
 }
 
 static void resume(void *data) {
-    window_set_click_config_provider(main_ctx.rex_window, click_config_provider);
     switch (main_ctx.mode) {
         case mode_none: rex_empty(); break;
         case mode_automatic_classification: start(); break;
@@ -81,6 +81,7 @@ static void rejected(void) {
 static void app_message_received(DictionaryIterator *iterator, void *context) {
     Tuple *t = dict_read_first(iterator);
     while (t != NULL) {
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "Received %ld", t->key);
         switch (t->key) {
             case 0xa0000000: rex_not_moving(); return;
             case 0xa0000001: rex_moving(); return;
@@ -114,7 +115,6 @@ static void app_message_received(DictionaryIterator *iterator, void *context) {
                 return;
             case 0xb2000000:
                 main_ctx.mode = mode_automatic_classification;
-                accel_tap_service_unsubscribe();
                 rex_not_moving();
                 start();
                 return;
@@ -170,13 +170,17 @@ static void back_click_handler(ClickRecognizerRef recognizer, void *context) {
     }
 }
 
+static void rex_dismissed(void) {
+    window_set_click_config_provider(main_ctx.rex_window, click_config_provider);
+}
+
 static void click_config_provider(void *context) {
     // Register the ClickHandlers
     window_single_click_subscribe(BUTTON_ID_BACK, back_click_handler);
 }
 
 static void init(void) {
-    main_ctx.rex_window = rex_init();
+    main_ctx.rex_window = rex_init(rex_dismissed);
     window_set_click_config_provider(main_ctx.rex_window, click_config_provider);
     window_stack_push(main_ctx.rex_window, true);
     app_message_register_inbox_received(app_message_received);
@@ -193,7 +197,6 @@ static void deinit(void) {
     ad_stop();
     am_stop();
 
-    accel_tap_service_unsubscribe();
     window_destroy(main_ctx.rex_window);
 }
 
