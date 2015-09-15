@@ -17,6 +17,7 @@ static struct {
     ActionBarLayer *action_bar;
     resistance_exercise_t *current_exercise;
     classification_dismissed_callback_t dismissed;
+    bool show_help;
 } ui;
 
 static struct {
@@ -43,6 +44,7 @@ static void zero() {
     callbacks.timed_out = NULL;
     selection.index = selection.counter = 0;
     ui.current_exercise = NULL;
+    ui.show_help = false;
     resistance_exercises.count = 0;
     if (selection.timer != NULL) app_timer_cancel(selection.timer);
     selection.timer = NULL;
@@ -99,6 +101,7 @@ static void draw_progress_bar(GContext *context, uint8_t y, uint8_t counter) {
 
 static void text_layer_update_callback(Layer *layer, GContext *context) {
     if (resistance_exercises.count > 0) {
+        graphics_context_set_compositing_mode(context, GCompOpClear);
         resistance_exercise_t re = resistance_exercises.exercises[selection.index];
         graphics_context_set_text_color(context, GColorBlack);
         GRect bounds = layer_get_frame(layer);
@@ -130,12 +133,30 @@ static void text_layer_update_callback(Layer *layer, GContext *context) {
         draw_progress_bar(context, y + 2, selection.counter);
         return;
 
-    } else if (ui.bitmap != NULL) {
-        graphics_context_set_compositing_mode(context, GCompOpClear);
-        graphics_draw_bitmap_in_rect(context, ui.bitmap, GRect(10, 60, 120, 75));
+    } else {
+        if (ui.bitmap != NULL) {
+            graphics_context_set_compositing_mode(context, GCompOpClear);
+            graphics_draw_bitmap_in_rect(context, ui.bitmap, GRect(10, 70, 120, 75));
+        }
+        if(ui.show_help) {
+            GRect bounds = layer_get_frame(layer);
+            char explanation_text[30] = "Push button to start / stop";
+            GBitmap *arrow = gbitmap_create_with_resource(RESOURCE_ID_LEFTARROW);
+            graphics_draw_bitmap_in_rect(context, arrow, GRect(0, 10, 70, 34));
+            graphics_context_set_text_color(context, GColorBlack);
+            graphics_draw_text(context,
+                               explanation_text,
+                               fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
+                               GRect(5, 40, bounds.size.w - 10, 100),
+                               GTextOverflowModeWordWrap,
+                               GTextAlignmentCenter,
+                               NULL);
+            graphics_context_set_text_color(context, GColorWhite);
+        }
     }
 
     if (ui.current_exercise != NULL) {
+        graphics_context_set_compositing_mode(context, GCompOpClear);
         graphics_context_set_text_color(context, GColorBlack);
         GRect bounds = layer_get_frame(layer);
 
@@ -201,7 +222,6 @@ static void window_load(Window *window) {
     action_bar_layer_set_icon(ui.action_bar, BUTTON_ID_UP, ui.action_up_bitmap);
     action_bar_layer_set_icon(ui.action_bar, BUTTON_ID_SELECT, ui.action_select_bitmap);
     action_bar_layer_set_icon(ui.action_bar, BUTTON_ID_DOWN, ui.action_down_bitmap);
-
     // load_and_set_bitmap(RESOURCE_ID_NOTMOVING);
 }
 
@@ -274,26 +294,25 @@ void rex_classification_completed(resistance_exercise_t *exercises, uint8_t coun
         APP_LOG(APP_LOG_LEVEL_DEBUG, "r_e.count = %d", resistance_exercises.count);
 
         load_and_set_bitmap(0);
-        layer_mark_dirty(ui.text_layer);
     }
 }
 
 void rex_empty(void) {
+    ui.show_help = true;
     load_and_set_bitmap(0);
-    layer_mark_dirty(ui.text_layer);
 }
 
 void rex_moving(void) {
+    ui.show_help = false;
     load_and_set_bitmap(RESOURCE_ID_MOVING);
-    layer_mark_dirty(ui.text_layer);
 }
 
 void rex_exercising(void) {
+    ui.show_help = false;
     load_and_set_bitmap(RESOURCE_ID_EXERCISING);
-    layer_mark_dirty(ui.text_layer);
 }
 
 void rex_not_moving(void) {
+    ui.show_help = true;
     load_and_set_bitmap(RESOURCE_ID_NOTMOVING);
-    layer_mark_dirty(ui.text_layer);
 }
