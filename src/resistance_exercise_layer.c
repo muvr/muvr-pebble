@@ -1,5 +1,6 @@
 #include "pebble.h"
 #include "resistance_exercise_layer.h"
+#include <string.h>
 
 #define RESISTANCE_EXERCISES_MAX 8
 #define TIMER_MS 75
@@ -17,7 +18,7 @@ static struct {
     ActionBarLayer *action_bar;
     resistance_exercise_t *current_exercise;
     classification_dismissed_callback_t dismissed;
-    bool show_help;
+    char show_help[10];
 } ui;
 
 static struct {
@@ -44,7 +45,7 @@ static void zero() {
     callbacks.timed_out = NULL;
     selection.index = selection.counter = 0;
     ui.current_exercise = NULL;
-    ui.show_help = false;
+    strcpy(ui.show_help, "");
     resistance_exercises.count = 0;
     if (selection.timer != NULL) app_timer_cancel(selection.timer);
     selection.timer = NULL;
@@ -138,9 +139,10 @@ static void text_layer_update_callback(Layer *layer, GContext *context) {
             graphics_context_set_compositing_mode(context, GCompOpClear);
             graphics_draw_bitmap_in_rect(context, ui.bitmap, GRect(10, 70, 120, 75));
         }
-        if(ui.show_help) {
+        if(strlen(ui.show_help) > 0) {
             GRect bounds = layer_get_frame(layer);
-            char explanation_text[30] = "Push button to start / stop";
+            char explanation_text[20] = "Push to ";
+            strcat(explanation_text, ui.show_help);
             GBitmap *arrow = gbitmap_create_with_resource(RESOURCE_ID_LEFTARROW);
             graphics_draw_bitmap_in_rect(context, arrow, GRect(0, 10, 70, 34));
             graphics_context_set_text_color(context, GColorBlack);
@@ -298,21 +300,21 @@ void rex_classification_completed(resistance_exercise_t *exercises, uint8_t coun
 }
 
 void rex_empty(void) {
-    ui.show_help = true;
+    strcpy(ui.show_help, "START");
     load_and_set_bitmap(0);
 }
 
 void rex_moving(void) {
-    ui.show_help = false;
+    strcpy(ui.show_help, "");
     load_and_set_bitmap(RESOURCE_ID_MOVING);
 }
 
 void rex_exercising(void) {
-    ui.show_help = false;
+    strcpy(ui.show_help , "STOP");
     load_and_set_bitmap(RESOURCE_ID_EXERCISING);
 }
 
 void rex_not_moving(void) {
-    ui.show_help = true;
+    strcpy(ui.show_help, "START");
     load_and_set_bitmap(RESOURCE_ID_NOTMOVING);
 }
