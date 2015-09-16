@@ -3,6 +3,9 @@
 #include "../core/main/am.h"
 #include "resistance_exercise_layer.h"
 
+static void click_config_provider(void *context);
+static void back_click_handler(ClickRecognizerRef recognizer, void *context);
+
 enum mode {
     // not yet selected
     mode_none,
@@ -31,7 +34,7 @@ static void safe_vibes_double_pulse(void) {
     vibes_double_pulse();
 }
 
-static void start() {
+static void start(void) {
     ad_start(main_ctx.message_callback, AD_SAMPLING_50HZ, 2050);
     rex_not_moving();
 
@@ -78,6 +81,7 @@ static void rejected(void) {
 static void app_message_received(DictionaryIterator *iterator, void *context) {
     Tuple *t = dict_read_first(iterator);
     while (t != NULL) {
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "Received %ld", t->key);
         switch (t->key) {
             case 0xa0000000: rex_not_moving(); return;
             case 0xa0000001: rex_moving(); return;
@@ -111,7 +115,6 @@ static void app_message_received(DictionaryIterator *iterator, void *context) {
                 return;
             case 0xb2000000:
                 main_ctx.mode = mode_automatic_classification;
-                accel_tap_service_unsubscribe();
                 rex_not_moving();
                 start();
                 return;
@@ -130,7 +133,7 @@ static bool is_vibrating(void) {
 }
 
 /**
- * The tap behaviour depends on the mode and the state in main_ctx:
+ * The back button behaviour depends on the mode and the state in main_ctx:
  *
  * - if mode == mode_automatic_classification, do nothing
  * - if mode == mode_training && exercising: stop exercise, send training_completed
@@ -139,11 +142,9 @@ static bool is_vibrating(void) {
  * - if mode == mode_assisted_classification && !exercising: start exercise
  *
  */
-static void tap_handler(AccelAxisType axis, int32_t direction) {
-    //if (axis != ACCEL_AXIS_Z) return;
+static void back_click_handler(ClickRecognizerRef recognizer, void *context) {
     if (main_ctx.mode == mode_automatic_classification) return;
     if (main_ctx.mode == mode_none) return;
-    if (is_vibrating()) return;
 
     safe_vibes_double_pulse();
 
@@ -169,9 +170,18 @@ static void tap_handler(AccelAxisType axis, int32_t direction) {
     }
 }
 
+static void rex_dismissed(void) {
+    window_set_click_config_provider(main_ctx.rex_window, click_config_provider);
+}
+
+static void click_config_provider(void *context) {
+    // Register the ClickHandlers
+    window_single_click_subscribe(BUTTON_ID_BACK, back_click_handler);
+}
+
 static void init(void) {
-    accel_tap_service_subscribe(tap_handler);
-    main_ctx.rex_window = rex_init();
+    main_ctx.rex_window = rex_init(rex_dismissed);
+    window_set_click_config_provider(main_ctx.rex_window, click_config_provider);
     window_stack_push(main_ctx.rex_window, true);
     app_message_register_inbox_received(app_message_received);
 
@@ -187,7 +197,6 @@ static void deinit(void) {
     ad_stop();
     am_stop();
 
-    accel_tap_service_unsubscribe();
     window_destroy(main_ctx.rex_window);
 }
 
