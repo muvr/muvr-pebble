@@ -14,6 +14,7 @@ static struct {
     GBitmap *action_up_bitmap;
     GBitmap *action_down_bitmap;
     GBitmap *action_select_bitmap;
+    GBitmap *arrow;
     Layer *text_layer;
     ActionBarLayer *action_bar;
     resistance_exercise_t *current_exercise;
@@ -143,8 +144,7 @@ static void text_layer_update_callback(Layer *layer, GContext *context) {
             GRect bounds = layer_get_frame(layer);
             char explanation_text[20] = "Push to ";
             strcat(explanation_text, ui.show_help);
-            GBitmap *arrow = gbitmap_create_with_resource(RESOURCE_ID_LEFTARROW);
-            graphics_draw_bitmap_in_rect(context, arrow, GRect(0, 10, 70, 34));
+            graphics_draw_bitmap_in_rect(context, ui.arrow, GRect(0, 10, 70, 34));
             graphics_context_set_text_color(context, GColorBlack);
             graphics_draw_text(context,
                                explanation_text,
@@ -221,6 +221,7 @@ static void window_load(Window *window) {
     ui.action_up_bitmap = gbitmap_create_with_resource(RESOURCE_ID_UP);
     ui.action_select_bitmap = gbitmap_create_with_resource(RESOURCE_ID_SELECT);
     ui.action_down_bitmap = gbitmap_create_with_resource(RESOURCE_ID_DOWN);
+    ui.arrow = gbitmap_create_with_resource(RESOURCE_ID_LEFTARROW);
     action_bar_layer_set_icon(ui.action_bar, BUTTON_ID_UP, ui.action_up_bitmap);
     action_bar_layer_set_icon(ui.action_bar, BUTTON_ID_SELECT, ui.action_select_bitmap);
     action_bar_layer_set_icon(ui.action_bar, BUTTON_ID_DOWN, ui.action_down_bitmap);
@@ -233,6 +234,7 @@ static void window_unload(Window *window) {
     gbitmap_destroy(ui.action_up_bitmap);
     gbitmap_destroy(ui.action_select_bitmap);
     gbitmap_destroy(ui.action_down_bitmap);
+    gbitmap_destroy(ui.arrow);
 }
 
 Window* rex_init(classification_dismissed_callback_t dismissed) {
