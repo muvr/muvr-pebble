@@ -16,6 +16,7 @@ static struct {
     GBitmap *action_select_bitmap;
     GBitmap *arrow;
     Layer *text_layer;
+    BitmapLayer *bitmap_layer;
     ActionBarLayer *action_bar;
     resistance_exercise_t *current_exercise;
     classification_dismissed_callback_t dismissed;
@@ -137,24 +138,27 @@ static void text_layer_update_callback(Layer *layer, GContext *context) {
 
     } else {
         if (ui.bitmap != NULL) {
-            graphics_context_set_compositing_mode(context, GCompOpClear);
-            graphics_draw_bitmap_in_rect(context, ui.bitmap, GRect(10, 70, 120, 75));
+            bitmap_layer_set_bitmap(ui.bitmap_layer, ui.bitmap);
+            bitmap_layer_set_compositing_mode(ui.bitmap_layer, GCompOpSet);
         }
+        GRect bounds = layer_get_frame(layer);
+        char* ui_text;
         if(strlen(ui.show_help) > 0) {
-            GRect bounds = layer_get_frame(layer);
-            char explanation_text[20] = "Push to ";
-            strcat(explanation_text, ui.show_help);
+            graphics_context_set_compositing_mode(context, GCompOpSet);
             graphics_draw_bitmap_in_rect(context, ui.arrow, GRect(0, 10, 70, 34));
-            graphics_context_set_text_color(context, GColorBlack);
-            graphics_draw_text(context,
-                               explanation_text,
-                               fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
-                               GRect(5, 40, bounds.size.w - 10, 100),
-                               GTextOverflowModeWordWrap,
-                               GTextAlignmentCenter,
-                               NULL);
-            graphics_context_set_text_color(context, GColorWhite);
+            ui_text = ui.show_help;
+        } else {
+            ui_text = "Idle";
         }
+        graphics_context_set_text_color(context, GColorBlack);
+        graphics_draw_text(context,
+                           ui_text,
+                           fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
+                           GRect(5, 40, bounds.size.w - 10, 100),
+                           GTextOverflowModeWordWrap,
+                           GTextAlignmentCenter,
+                           NULL);
+        graphics_context_set_text_color(context, GColorWhite);
     }
 
     if (ui.current_exercise != NULL) {
@@ -164,7 +168,7 @@ static void text_layer_update_callback(Layer *layer, GContext *context) {
 
         // the name
         GFont exercise_font = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
-        GRect exercise_rect = GRect(5, 5, bounds.size.w - 10, 100);
+        GRect exercise_rect = GRect(5, 142, bounds.size.w - 10, 100);
         char *exercise_text = ui.current_exercise->name;
         graphics_draw_text(context, exercise_text, exercise_font, exercise_rect, GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
     }
@@ -206,13 +210,17 @@ static void click_config_provider(Window *window) {
 
 static void window_load(Window *window) {
     Layer *window_layer = window_get_root_layer(window);
+    StatusBarLayer *s_status_bar = status_bar_layer_create();
     GRect bounds = layer_get_bounds(window_layer);
 
     ui.action_bar = action_bar_layer_create();
     ui.text_layer = layer_create(bounds);
+    ui.bitmap_layer = bitmap_layer_create(GRect(10, 70, 120, 75));
+
     layer_set_update_proc(ui.text_layer, text_layer_update_callback);
 
     layer_add_child(window_layer, ui.text_layer);
+    layer_add_child(window_layer, bitmap_layer_get_layer(ui.bitmap_layer));
 
     action_bar_layer_set_background_color(ui.action_bar, GColorBlack);
     action_bar_layer_set_click_config_provider(ui.action_bar, (ClickConfigProvider)click_config_provider);
@@ -225,11 +233,13 @@ static void window_load(Window *window) {
     action_bar_layer_set_icon(ui.action_bar, BUTTON_ID_UP, ui.action_up_bitmap);
     action_bar_layer_set_icon(ui.action_bar, BUTTON_ID_SELECT, ui.action_select_bitmap);
     action_bar_layer_set_icon(ui.action_bar, BUTTON_ID_DOWN, ui.action_down_bitmap);
+    layer_add_child(window_layer, status_bar_layer_get_layer(s_status_bar));
     // load_and_set_bitmap(RESOURCE_ID_NOTMOVING);
 }
 
 static void window_unload(Window *window) {
     layer_destroy(ui.text_layer);
+    bitmap_layer_destroy(ui.bitmap_layer);
     if (ui.bitmap != NULL) gbitmap_destroy(ui.bitmap);
     gbitmap_destroy(ui.action_up_bitmap);
     gbitmap_destroy(ui.action_select_bitmap);
@@ -276,6 +286,7 @@ void rex_set_current(resistance_exercise_t *exercise) {
     static resistance_exercise_t current;
     memcpy(&current, exercise, sizeof(resistance_exercise_t));
     ui.current_exercise = &current;
+    layer_mark_dirty(ui.text_layer);
 }
 
 void rex_classification_completed(resistance_exercise_t *exercises, uint8_t count,
@@ -302,12 +313,12 @@ void rex_classification_completed(resistance_exercise_t *exercises, uint8_t coun
 }
 
 void rex_empty(void) {
-    strcpy(ui.show_help, "start");
     load_and_set_bitmap(0);
+    zero();
 }
 
 void rex_moving(void) {
-    strcpy(ui.show_help, "");
+    strcpy(ui.show_help, "Press to STOP");
     load_and_set_bitmap(RESOURCE_ID_MOVING);
 }
 

@@ -23,7 +23,7 @@ static struct {
     uint64_t start_time;
 } ad_context;
 
-#define SIGNED_12_MAX(x) (int16_t)((x) > 4095 ? 4095 : ((x) < -4095 ? -4095 : (x)))
+// #define SIGNED_12_MAX(x) (int16_t)((x) > 4095 ? 4095 : ((x) < -4095 ? -4095 : (x)))
 
 /**
  * Handle the samples arriving.
@@ -36,13 +36,13 @@ static void ad_raw_accel_data_handler(AccelRawData *data, uint32_t num_samples, 
     for (unsigned int i = 0; i < num_samples; ++i) {
         
 #ifndef TEST_WITH_SINES
-        ad[i].x_val = SIGNED_12_MAX(data[i].x);
-        ad[i].y_val = SIGNED_12_MAX(data[i].y);
-        ad[i].z_val = SIGNED_12_MAX(data[i].z);
+        ad[i].x_val = data[i].x;
+        ad[i].y_val = data[i].y;
+        ad[i].z_val = data[i].z;
 #else
-        ad[i].x_val = SIGNED_12_MAX( sin_lookup((timestamp * 300) % TRIG_MAX_ANGLE) >> 6 ); // SIGNED_12_MAX(data[i].x);
-        ad[i].y_val = SIGNED_12_MAX( sin_lookup((timestamp * 300) % TRIG_MAX_ANGLE) >> 6 ); // SIGNED_12_MAX(data[i].y);
-        ad[i].z_val = SIGNED_12_MAX( cos_lookup((timestamp * 300) % TRIG_MAX_ANGLE) >> 6 ); // SIGNED_12_MAX(data[i].z);
+        ad[i].x_val = sin_lookup((timestamp * 300) % TRIG_MAX_ANGLE) >> 6; // SIGNED_12_MAX(data[i].x);
+        ad[i].y_val = sin_lookup((timestamp * 300) % TRIG_MAX_ANGLE) >> 6; // SIGNED_12_MAX(data[i].y);
+        ad[i].z_val = cos_lookup((timestamp * 300) % TRIG_MAX_ANGLE) >> 6; // SIGNED_12_MAX(data[i].z);
 #endif
         
     }
@@ -63,7 +63,8 @@ static void ad_raw_accel_data_handler(AccelRawData *data, uint32_t num_samples, 
     if (submit) {
         uint16_t duration = (uint16_t)(timestamp - ad_context.start_time);
         if (ad_context.callback != NULL) {
-            ad_context.callback(ad_context.buffer, ad_context.buffer_position, timestamp, duration);
+            double timestamp_in_seconds = (double)(timestamp / 1000);
+            ad_context.callback(ad_context.buffer, ad_context.buffer_position, timestamp_in_seconds, duration);
         } else {
             APP_LOG(APP_LOG_LEVEL_DEBUG, "Not submitting %d samples, %d reported duration", ad_context.buffer_position / sizeof(struct threed_data), duration);
         }
@@ -82,10 +83,9 @@ int ad_start(const message_callback_t callback, const ad_sampling_rate_t frequen
 
     if (ad_context.buffer == NULL) return E_AD_MEM;
 
-    accel_service_set_sampling_rate((AccelSamplingRate)frequency);
     accel_raw_data_service_subscribe(AD_NUM_SAMPLES, ad_raw_accel_data_handler);
     accel_service_set_sampling_rate((AccelSamplingRate)frequency);
-
+    
     return 1;
 }
 
