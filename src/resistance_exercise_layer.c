@@ -141,8 +141,8 @@ void rex_set_current(resistance_exercise_t *exercise) {
 }
 
 void rex_empty(void) {
-    load_and_set_bitmap(0);
     zero();
+    load_and_set_bitmap(0);
 }
 
 void rex_moving(void) {
