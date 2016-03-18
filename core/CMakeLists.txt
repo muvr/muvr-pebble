@@ -1,4 +1,5 @@
-INCLUDE_DIRECTORIES(/usr/local/opt/pebble-sdk/Pebble/aplite/include)
+execute_process(COMMAND pebble sdk include-path aplite OUTPUT_VARIABLE PEBBLE_INCLUDE_DIR)
+INCLUDE_DIRECTORIES("${PEBBLE_INCLUDE_DIR}")
 
 ADD_SUBDIRECTORY(main)
 ADD_SUBDIRECTORY(test)

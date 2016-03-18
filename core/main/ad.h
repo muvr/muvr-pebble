@@ -26,8 +26,8 @@ struct __attribute__((__packed__)) threed_data {
 typedef enum {
 //    AD_SAMPLING_10HZ = 10,
 //    AD_SAMPLING_25HZ = 25,
-    AD_SAMPLING_50HZ = 50,
-    AD_SAMPLING_100HZ = 100
+    AD_SAMPLING_50HZ = 50
+//    AD_SAMPLING_100HZ = 100
 } ad_sampling_rate_t;
 
 #ifdef __cplusplus

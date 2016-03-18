@@ -109,7 +109,7 @@ static void text_layer_update_callback(Layer *layer, GContext *context) {
         GRect bounds = layer_get_frame(layer);
 
         // the name
-        GFont *exercise_font = fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD);
+        GFont exercise_font = fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD);
         GRect exercise_rect = GRect(5, 5, bounds.size.w - 10, 100);
         char *exercise_text = re.name;
         //GSize exercise_cs = graphics_text_layout_get_content_size(exercise_text, exercise_font, exercise_rect, GTextOverflowModeWordWrap, GTextAlignmentLeft);
@@ -124,7 +124,7 @@ static void text_layer_update_callback(Layer *layer, GContext *context) {
         if (re.weight != UNK_WEIGHT) snprintf(x, 10, "%d kg\n", re.weight);
         strcat(header_text, x);
 
-        snprintf(x, 10,"%d%%", re.confidence);
+        snprintf(x, 10,"%d s", re.duration);
         strcat(header_text, x);
         graphics_draw_text(context, header_text, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD), GRect(5, 80, bounds.size.w - 10, 100), GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
 
@@ -163,7 +163,7 @@ static void text_layer_update_callback(Layer *layer, GContext *context) {
         GRect bounds = layer_get_frame(layer);
 
         // the name
-        GFont *exercise_font = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
+        GFont exercise_font = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
         GRect exercise_rect = GRect(5, 5, bounds.size.w - 10, 100);
         char *exercise_text = ui.current_exercise->name;
         graphics_draw_text(context, exercise_text, exercise_font, exercise_rect, GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
@@ -302,7 +302,7 @@ void rex_classification_completed(resistance_exercise_t *exercises, uint8_t coun
 }
 
 void rex_empty(void) {
-    strcpy(ui.show_help, "START");
+    strcpy(ui.show_help, "start");
     load_and_set_bitmap(0);
 }
 
@@ -312,11 +312,11 @@ void rex_moving(void) {
 }
 
 void rex_exercising(void) {
-    strcpy(ui.show_help , "STOP");
+    strcpy(ui.show_help , "stop");
     load_and_set_bitmap(RESOURCE_ID_EXERCISING);
 }
 
 void rex_not_moving(void) {
-    strcpy(ui.show_help, "START");
+    strcpy(ui.show_help, "start");
     load_and_set_bitmap(RESOURCE_ID_NOTMOVING);
 }

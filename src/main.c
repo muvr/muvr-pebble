@@ -189,6 +189,18 @@ static void init(void) {
     main_ctx.mode = mode_assisted_classification;
     main_ctx.resistance_exercises_count = 0;
     main_ctx.vibes_start_time = 0;
+#define DEBUG
+#ifdef DEBUG
+    uint8_t count = 3;
+    for (int i = 0; i < 3; i++) {
+        snprintf(main_ctx.resistance_exercises[i].name, 20, "Ex %d", i);
+        main_ctx.resistance_exercises[i].repetitions = 10;
+        main_ctx.resistance_exercises[i].weight = 20;
+        main_ctx.resistance_exercises[i].duration = 60;
+    }
+    main_ctx.resistance_exercises_count = 3;
+    rex_not_moving();
+#endif
 
     main_ctx.message_callback = am_start(0xad, 50, 5);
 }
