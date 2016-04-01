@@ -31,8 +31,9 @@ static void load_and_set_bitmap(uint32_t resource_id) {
         gbitmap_destroy(ui.bitmap);
         ui.bitmap = NULL;
     }
-
-    if (resource_id != 0) ui.bitmap = gbitmap_create_with_resource(resource_id);
+    GBitmap *bitmap = NULL;
+    if (resource_id != 0) bitmap = gbitmap_create_with_resource(resource_id);
+    ui.bitmap = bitmap;
 
     layer_mark_dirty(ui.text_layer);
 }
