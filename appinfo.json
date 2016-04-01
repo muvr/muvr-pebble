@@ -11,15 +11,15 @@
   "appKeys": {},
   "resources": {
     "media": [
-      {"type": "png", "name": "EXERCISING", "file": "images/exercising.png"},
-      {"type": "png", "name": "MOVING",     "file": "images/moving.png"},
-      {"type": "png", "name": "NOTMOVING",  "file": "images/notmoving.png"},
-      {"type": "png", "name": "THUMBSUP",   "file": "images/thumbsup.png"},
-      {"type": "png", "name": "THUMBSDOWN", "file": "images/thumbsdown.png"},
-      {"type": "png", "name": "UP",         "file": "images/up.png"},
-      {"type": "png", "name": "DOWN",       "file": "images/down.png"},
-      {"type": "png", "name": "SELECT",     "file": "images/select.png"},
-      {"type": "png", "name": "LEFTARROW",  "file": "images/leftarrow.png"}
+      {"type": "bitmap", "name": "EXERCISING", "file": "images/exercising.png"},
+      {"type": "bitmap", "name": "MOVING",     "file": "images/moving.png"},
+      {"type": "bitmap", "name": "NOTMOVING",  "file": "images/notmoving.png"},
+      {"type": "bitmap", "name": "THUMBSUP",   "file": "images/thumbsup.png"},
+      {"type": "bitmap", "name": "THUMBSDOWN", "file": "images/thumbsdown.png"},
+      {"type": "bitmap", "name": "UP",         "file": "images/up.png"},
+      {"type": "bitmap", "name": "DOWN",       "file": "images/down.png"},
+      {"type": "bitmap", "name": "SELECT",     "file": "images/select.png"},
+      {"type": "bitmap", "name": "LEFTARROW",  "file": "images/leftarrow.png"}
     ]
   },
   "targetPlatforms": [
