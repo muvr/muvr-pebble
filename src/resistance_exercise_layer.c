@@ -1,6 +1,5 @@
 #include "pebble.h"
 #include "resistance_exercise_layer.h"
-#include <string.h>
 
 static struct {
     Window *window;
