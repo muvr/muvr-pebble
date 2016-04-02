@@ -1,4 +1,3 @@
-#include "compat.h"
 #include <pebble.h>
 #include "ad.h"
 
