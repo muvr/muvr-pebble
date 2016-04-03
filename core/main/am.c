@@ -7,6 +7,8 @@
 #define OUTB_S_CODE 98304
 #define OUTB_F_CODE 131072
 
+#define APP_MESSAGE_OUTBOX_SIZE 720
+
 /**
  * Context that holds the current callback and samples_per_second. It is used in the accelerometer
  * callback to calculate the G forces and to push the packed sample buffer to the callback.
@@ -24,7 +26,7 @@ struct am_context_t {
     bool send_in_progress;
 
     // the header fields
-    uint8_t type;
+    uint32_t type;
     uint8_t sample_size;
     uint8_t samples_per_second;
     uint8_t sequence_number;
@@ -90,8 +92,8 @@ static bool send_buffer(struct am_context_t *context, const uint32_t key, const 
     return true;
 }
 
-static void send_message(const uint32_t key, const uint8_t* payload_buffer, const uint16_t size, const uint64_t timestamp, const uint16_t duration) {
-    static const uint16_t payload_size_max = APP_MESSAGE_OUTBOX_SIZE_MINIMUM - sizeof(struct header);
+static void send_message(const uint32_t key, const uint8_t* payload_buffer, const uint16_t size, const double timestamp, const uint16_t duration) {
+    static const uint16_t payload_size_max = APP_MESSAGE_OUTBOX_SIZE - sizeof(struct header);
 
     struct am_context_t *context = app_message_get_context();
     if (context == NULL) return;
@@ -107,27 +109,30 @@ static void send_message(const uint32_t key, const uint8_t* payload_buffer, cons
         EXIT(-3);
     }
 
-    uint8_t message_buffer[APP_MESSAGE_OUTBOX_SIZE_MINIMUM];
+    uint8_t message_buffer[APP_MESSAGE_OUTBOX_SIZE];
     memcpy(message_buffer + sizeof(struct header), payload_buffer, size);
     for (int i = 0; i < 5; ++i) {
         struct header *header = (struct header *) message_buffer;
-        header->type = context->type;
+        header->preamble1 = 0x61;
+        header->preamble2 = 0x64;
+        header->types_count = 1;
         header->samples_per_second = context->samples_per_second;
-        header->sample_size = context->sample_size;
-        header->count = (uint8_t) (size / context->sample_size);
-        header->device_id = 0;
-        header->sequence_number = context->sequence_number;
-        header->duration = duration;
         header->timestamp = timestamp;
+        header->count = (uint32_t) (size / context->sample_size);
+        header->type = context->type;
+
+        // header->sequence_number = context->sequence_number;
+        // header->duration = duration;
+        
 
         if (send_buffer(context, key, message_buffer, (uint16_t) (size + sizeof(struct header)))) {
-            APP_LOG(APP_LOG_LEVEL_DEBUG, "send_message: sent %d samples, reported duration %d, at %lu", header->count, header->duration, (uint32_t)(timestamp & 0x7fffffff));
+            APP_LOG(APP_LOG_LEVEL_DEBUG, "send_message: sent %lu samples, at %g", header->count, timestamp);
             context->count++;
             break;
         } else {
             char err[20];
             get_error_text(context->last_error, err, 20);
-            APP_LOG(APP_LOG_LEVEL_DEBUG, "send_message: not sent: %s", err);
+            APP_LOG(APP_LOG_LEVEL_DEBUG, "send_message: not sent: %s. Size: %u", err, (uint16_t) (size + sizeof(struct header)));
             psleep(200);
         }
     }
@@ -161,7 +166,7 @@ void am_send_simple(const msgkey_t key, const uint8_t value) {
     context->send_in_progress = false;
 }
 
-void sample_callback(const uint8_t* payload_buffer, const uint16_t size, const uint64_t timestamp, const uint16_t duration) {
+void sample_callback(const uint8_t* payload_buffer, const uint16_t size, const double timestamp, const uint16_t duration) {
     send_message(msg_ad, payload_buffer, size, timestamp, duration);
 }
 
@@ -169,7 +174,7 @@ static void send_failed(DictionaryIterator __unused *iterator, AppMessageResult 
 
 }
 
-message_callback_t am_start(uint8_t type, uint8_t samples_per_second, uint8_t sample_size) {
+message_callback_t am_start(uint32_t type, uint8_t samples_per_second, uint8_t sample_size) {
     struct am_context_t *context = malloc(sizeof(struct am_context_t));
     context->count = 0;
     context->error_count = 0;
@@ -183,7 +188,7 @@ message_callback_t am_start(uint8_t type, uint8_t samples_per_second, uint8_t sa
     context->send_in_progress = false;
 
     app_message_set_context(context);
-    app_message_open(APP_MESSAGE_INBOX_SIZE_MINIMUM, APP_MESSAGE_OUTBOX_SIZE_MINIMUM);
+    app_message_open(APP_MESSAGE_INBOX_SIZE_MINIMUM, APP_MESSAGE_OUTBOX_SIZE);
     app_message_register_outbox_failed(send_failed);
 
     return &sample_callback;

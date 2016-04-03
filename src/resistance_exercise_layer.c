@@ -1,12 +1,5 @@
 #include "pebble.h"
 #include "resistance_exercise_layer.h"
-#include <string.h>
-
-#define RESISTANCE_EXERCISES_MAX 8
-#define TIMER_MS 75
-#define COUNTER_ZERO 110
-
-#define MIN(a, b) ((a < b) ? a : b)
 
 static struct {
     Window *window;
@@ -16,40 +9,17 @@ static struct {
     GBitmap *action_select_bitmap;
     GBitmap *arrow;
     Layer *text_layer;
+    BitmapLayer *bitmap_layer;
     ActionBarLayer *action_bar;
     resistance_exercise_t *current_exercise;
-    classification_dismissed_callback_t dismissed;
+    screen_back_callback_t dismissed;
     char show_help[10];
 } ui;
 
-static struct {
-    resistance_exercise_t exercises[RESISTANCE_EXERCISES_MAX];
-    uint8_t count;
-} resistance_exercises;
-
-static struct {
-    classification_accepted_callback_t accepted;
-    classification_rejected_callback_t rejected;
-    classification_timedout_callback_t timed_out;
-} callbacks;
-
-static struct {
-    AppTimer *timer;
-    uint8_t index;
-    uint8_t counter;
-} selection;
-
 /// tidies up the display window: removes all counters and hides the action bar
 static void zero() {
-    callbacks.accepted = NULL;
-    callbacks.rejected = NULL;
-    callbacks.timed_out = NULL;
-    selection.index = selection.counter = 0;
     ui.current_exercise = NULL;
     strcpy(ui.show_help, "");
-    resistance_exercises.count = 0;
-    if (selection.timer != NULL) app_timer_cancel(selection.timer);
-    selection.timer = NULL;
     action_bar_layer_remove_from_window(ui.action_bar);
     if (ui.dismissed != NULL) ui.dismissed();
 }
@@ -60,162 +30,67 @@ static void load_and_set_bitmap(uint32_t resource_id) {
         gbitmap_destroy(ui.bitmap);
         ui.bitmap = NULL;
     }
-
-    if (resource_id != 0) ui.bitmap = gbitmap_create_with_resource(resource_id);
+    GBitmap *bitmap = NULL;
+    if (resource_id != 0) bitmap = gbitmap_create_with_resource(resource_id);
+    ui.bitmap = bitmap;
 
     layer_mark_dirty(ui.text_layer);
 }
 
-static void accept_once(const uint8_t index) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "accept_once");
-    if (callbacks.accepted != NULL) {
-        load_and_set_bitmap(RESOURCE_ID_THUMBSUP);
-        callbacks.accepted(index);
-    }
-    zero();
-}
-
-static void reject_once(void) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "reject_once");
-    if (callbacks.rejected != NULL) {
-        load_and_set_bitmap(RESOURCE_ID_THUMBSDOWN);
-        callbacks.rejected();
-    }
-    zero();
-}
-
-static void timed_out_once(const uint8_t index) {
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "timed_out_once");
-    if (callbacks.timed_out != NULL) {
-        load_and_set_bitmap(RESOURCE_ID_THUMBSUP);
-        callbacks.timed_out(index);
-    }
-    zero();
-}
-
-static void draw_progress_bar(GContext *context, uint8_t y, uint8_t counter) {
-    GPoint start = {.x = 5, .y = y};
-    GPoint end   = {.x = start.x + selection.counter, .y = y};
-    graphics_context_set_stroke_color(context, GColorBlack);
-    graphics_draw_line(context, start, end);
-
-}
-
 static void text_layer_update_callback(Layer *layer, GContext *context) {
-    if (resistance_exercises.count > 0) {
-        graphics_context_set_compositing_mode(context, GCompOpClear);
-        resistance_exercise_t re = resistance_exercises.exercises[selection.index];
-        graphics_context_set_text_color(context, GColorBlack);
-        GRect bounds = layer_get_frame(layer);
-
-        // the name
-        GFont exercise_font = fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD);
-        GRect exercise_rect = GRect(5, 5, bounds.size.w - 10, 100);
-        char *exercise_text = re.name;
-        //GSize exercise_cs = graphics_text_layout_get_content_size(exercise_text, exercise_font, exercise_rect, GTextOverflowModeWordWrap, GTextAlignmentLeft);
-        graphics_draw_text(context, exercise_text, exercise_font, exercise_rect, GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
-
-        // the details
-        char header_text[30];
-        char x[10];
-        if (re.repetitions != UNK_REPETITIONS) snprintf(x, 10, "%d reps\n", re.repetitions); else strcpy(x, "\n");
-        strcpy(header_text, x);
-
-        if (re.weight != UNK_WEIGHT) snprintf(x, 10, "%d kg\n", re.weight);
-        strcat(header_text, x);
-
-        snprintf(x, 10,"%d s", re.duration);
-        strcat(header_text, x);
-        graphics_draw_text(context, header_text, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD), GRect(5, 80, bounds.size.w - 10, 100), GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
-
-        // counter indicator
-        uint8_t y = 75;
-        draw_progress_bar(context, y, selection.counter);
-        draw_progress_bar(context, y + 1, selection.counter);
-        draw_progress_bar(context, y + 2, selection.counter);
-        return;
-
-    } else {
-        if (ui.bitmap != NULL) {
-            graphics_context_set_compositing_mode(context, GCompOpClear);
-            graphics_draw_bitmap_in_rect(context, ui.bitmap, GRect(10, 70, 120, 75));
-        }
-        if(strlen(ui.show_help) > 0) {
-            GRect bounds = layer_get_frame(layer);
-            char explanation_text[20] = "Push to ";
-            strcat(explanation_text, ui.show_help);
-            graphics_draw_bitmap_in_rect(context, ui.arrow, GRect(0, 10, 70, 34));
-            graphics_context_set_text_color(context, GColorBlack);
-            graphics_draw_text(context,
-                               explanation_text,
-                               fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
-                               GRect(5, 40, bounds.size.w - 10, 100),
-                               GTextOverflowModeWordWrap,
-                               GTextAlignmentCenter,
-                               NULL);
-            graphics_context_set_text_color(context, GColorWhite);
-        }
+    // -- Display main image
+    graphics_context_set_text_color(context, GColorWhite);
+    if (ui.bitmap != NULL) {
+        bitmap_layer_set_bitmap(ui.bitmap_layer, ui.bitmap);
+        bitmap_layer_set_compositing_mode(ui.bitmap_layer, GCompOpAssign);
     }
 
-    if (ui.current_exercise != NULL) {
-        graphics_context_set_compositing_mode(context, GCompOpClear);
-        graphics_context_set_text_color(context, GColorBlack);
-        GRect bounds = layer_get_frame(layer);
+    // -- Display UI help text, e.g. "Stop Session" or "Idle"
+    char* ui_text;
+    if(strlen(ui.show_help) > 0) {
+        graphics_context_set_compositing_mode(context, GCompOpAssign);
+        graphics_draw_bitmap_in_rect(context, ui.arrow, GRect(0, 10, 70, 34));
+        ui_text = ui.show_help;
+    } else {
+        ui_text = "Idle";
+    }
 
-        // the name
+    GRect bounds = layer_get_frame(layer);
+    graphics_draw_text(context,
+                       ui_text,
+                       fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
+                       GRect(5, 40, bounds.size.w - 10, 100),
+                       GTextOverflowModeWordWrap,
+                       GTextAlignmentCenter,
+                       NULL);
+
+    // -- Display current exercise information
+    if (ui.current_exercise != NULL) {
+        graphics_context_set_compositing_mode(context, GCompOpAssign);
+
+        // Display the exercise name at the bottom of the screen
         GFont exercise_font = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
-        GRect exercise_rect = GRect(5, 5, bounds.size.w - 10, 100);
+        GRect exercise_rect = GRect(5, 142, bounds.size.w - 10, 100);
         char *exercise_text = ui.current_exercise->name;
         graphics_draw_text(context, exercise_text, exercise_font, exercise_rect, GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
     }
 }
 
-static void down_single_click_handler(ClickRecognizerRef recognizer, void *context) {
-    selection.counter = COUNTER_ZERO;
-    if (selection.index < resistance_exercises.count - 1) selection.index++;
-    layer_mark_dirty(ui.text_layer);
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "selection.index = %d", selection.index);
-}
-
-static void up_single_click_handler(ClickRecognizerRef recognizer, void *context) {
-    selection.counter = COUNTER_ZERO;
-    if (selection.index > 0) selection.index--;
-    layer_mark_dirty(ui.text_layer);
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "selection.index = %d", selection.index);
-}
-
-static void select_single_click_handler(ClickRecognizerRef recognizer, void *context) {
-    accept_once(selection.index);
-}
-
-static void back_single_click_handler(ClickRecognizerRef recognizer, void *context) {
-    reject_once();
-}
-
-static void click_config_provider(Window *window) {
-    // single click / repeat-on-hold config:
-    window_single_click_subscribe(BUTTON_ID_DOWN,   down_single_click_handler);
-    window_single_click_subscribe(BUTTON_ID_UP,     up_single_click_handler);
-    window_single_click_subscribe(BUTTON_ID_SELECT, select_single_click_handler);
-    window_single_click_subscribe(BUTTON_ID_BACK,   back_single_click_handler);
-
-    // long click config:
-    // window_long_click_subscribe(BUTTON_ID_DOWN, 700, select_long_click_handler, select_long_click_release_handler);
-    // window_long_click_subscribe(BUTTON_ID_UP,   700, select_long_click_handler, select_long_click_release_handler);
-}
-
 static void window_load(Window *window) {
     Layer *window_layer = window_get_root_layer(window);
+    StatusBarLayer *s_status_bar = status_bar_layer_create();
     GRect bounds = layer_get_bounds(window_layer);
 
     ui.action_bar = action_bar_layer_create();
     ui.text_layer = layer_create(bounds);
+    ui.bitmap_layer = bitmap_layer_create(GRect(10, 70, 120, 75));
+
     layer_set_update_proc(ui.text_layer, text_layer_update_callback);
 
     layer_add_child(window_layer, ui.text_layer);
+    layer_add_child(window_layer, bitmap_layer_get_layer(ui.bitmap_layer));
 
-    action_bar_layer_set_background_color(ui.action_bar, GColorBlack);
-    action_bar_layer_set_click_config_provider(ui.action_bar, (ClickConfigProvider)click_config_provider);
+    action_bar_layer_set_background_color(ui.action_bar, GColorWhite);
 
     // set the action bar bitmaps
     ui.action_up_bitmap = gbitmap_create_with_resource(RESOURCE_ID_UP);
@@ -225,11 +100,13 @@ static void window_load(Window *window) {
     action_bar_layer_set_icon(ui.action_bar, BUTTON_ID_UP, ui.action_up_bitmap);
     action_bar_layer_set_icon(ui.action_bar, BUTTON_ID_SELECT, ui.action_select_bitmap);
     action_bar_layer_set_icon(ui.action_bar, BUTTON_ID_DOWN, ui.action_down_bitmap);
+    layer_add_child(window_layer, status_bar_layer_get_layer(s_status_bar));
     // load_and_set_bitmap(RESOURCE_ID_NOTMOVING);
 }
 
 static void window_unload(Window *window) {
     layer_destroy(ui.text_layer);
+    bitmap_layer_destroy(ui.bitmap_layer);
     if (ui.bitmap != NULL) gbitmap_destroy(ui.bitmap);
     gbitmap_destroy(ui.action_up_bitmap);
     gbitmap_destroy(ui.action_select_bitmap);
@@ -237,7 +114,7 @@ static void window_unload(Window *window) {
     gbitmap_destroy(ui.arrow);
 }
 
-Window* rex_init(classification_dismissed_callback_t dismissed) {
+Window* rex_init(screen_back_callback_t dismissed) {
     ui.dismissed = NULL;
     zero();
     ui.bitmap = NULL;
@@ -248,25 +125,9 @@ Window* rex_init(classification_dismissed_callback_t dismissed) {
     });
     ui.dismissed = dismissed;
 
-#ifdef PBL_COLOR
-    window_set_background_color(ui.window, GColorWhite);
-#else
-    window_set_background_color(ui.window, GColorWhite);
-#endif
+    window_set_background_color(ui.window, GColorBlack);
 
     return ui.window;
-}
-
-static void timer_callback(void *data) {
-    selection.counter--;
-    if (selection.counter == 0) {
-        // we have reached countdown without making a selection
-        timed_out_once(selection.index);
-        resistance_exercises.count = 0;
-    } else {
-        selection.timer = app_timer_register(TIMER_MS, timer_callback, NULL);
-    }
-    layer_mark_dirty(ui.text_layer);
 }
 
 void rex_set_current(resistance_exercise_t *exercise) {
@@ -276,47 +137,25 @@ void rex_set_current(resistance_exercise_t *exercise) {
     static resistance_exercise_t current;
     memcpy(&current, exercise, sizeof(resistance_exercise_t));
     ui.current_exercise = &current;
-}
-
-void rex_classification_completed(resistance_exercise_t *exercises, uint8_t count,
-                                  classification_accepted_callback_t accepted,
-                                  classification_timedout_callback_t timed_out,
-                                  classification_rejected_callback_t rejected) {
-    if (count == 0) {
-        rejected();
-    } else {
-        action_bar_layer_add_to_window(ui.action_bar, ui.window);
-        callbacks.accepted = accepted;
-        callbacks.timed_out = timed_out;
-        callbacks.rejected = rejected;
-
-        resistance_exercises.count = MIN(RESISTANCE_EXERCISES_MAX, count);
-        memcpy(resistance_exercises.exercises, exercises, resistance_exercises.count * sizeof(resistance_exercise_t));
-        selection.counter = COUNTER_ZERO;
-        selection.timer = app_timer_register(TIMER_MS, timer_callback, NULL);
-
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "r_e.count = %d", resistance_exercises.count);
-
-        load_and_set_bitmap(0);
-    }
+    layer_mark_dirty(ui.text_layer);
 }
 
 void rex_empty(void) {
-    strcpy(ui.show_help, "start");
+    zero();
     load_and_set_bitmap(0);
 }
 
 void rex_moving(void) {
-    strcpy(ui.show_help, "");
+    strcpy(ui.show_help, "Stop Session");
     load_and_set_bitmap(RESOURCE_ID_MOVING);
 }
 
 void rex_exercising(void) {
-    strcpy(ui.show_help , "stop");
+    strcpy(ui.show_help , "Stop Session");
     load_and_set_bitmap(RESOURCE_ID_EXERCISING);
 }
 
 void rex_not_moving(void) {
-    strcpy(ui.show_help, "start");
+    strcpy(ui.show_help, "Stop Session");
     load_and_set_bitmap(RESOURCE_ID_NOTMOVING);
 }

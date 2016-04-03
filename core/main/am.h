@@ -20,15 +20,14 @@ typedef enum {
  * 5 B in header
  */
 struct __attribute__((__packed__)) header {
-    uint8_t type;                   // 1
-    uint8_t count;                  // 2
-    uint8_t samples_per_second;     // 3
-    uint8_t sample_size;            // 4
-    uint8_t device_id;              // 5
-    /// the sequence counter (being uint8_t, it means that we fail to spot errors that are multiples of 256 errors apart)
-    uint8_t  sequence_number;       // 6
-    uint64_t timestamp;             // 13
-    uint16_t duration;              // 15
+    uint8_t preamble1;              // 1
+    uint8_t preamble2;              // 2
+    uint8_t types_count;            // 3
+    uint8_t samples_per_second;     // 4
+    double timestamp;               // 12
+    uint32_t count;                 // 16
+    // Types
+    uint32_t type;                  // 20
 };
 
 ///
@@ -36,7 +35,7 @@ struct __attribute__((__packed__)) header {
 /// which prepends the ``struct header`` above ahead of the samples passed.
 /// The ``type``, ``samples_per_second``, and ``sample_size`` will be set in the header.
 ///
-message_callback_t am_start(uint8_t type, uint8_t samples_per_second, uint8_t sample_size);
+message_callback_t am_start(uint32_t type, uint8_t samples_per_second, uint8_t sample_size);
 
 ///
 /// Stops the App Messages communication

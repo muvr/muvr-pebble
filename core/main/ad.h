@@ -3,7 +3,7 @@
 #include "m.h"
 
 // buffer size in B
-#define AD_BUFFER_SIZE (uint16_t)500 // 500 = 100 samples per call
+#define AD_BUFFER_SIZE (uint16_t)600 // 500 = 100 samples per call
 
 #define E_AD_ALREADY_RUNNING -1
 #define E_AD_MEM -2
@@ -12,12 +12,12 @@
 #define AD_NUM_SAMPLES 10
 
 /**
- * Packed 5 B of the accelerometer values
+ * Packed 6 B of the accelerometer values
  */
 struct __attribute__((__packed__)) threed_data {
-    int16_t x_val : 13;
-    int16_t y_val : 13;
-    int16_t z_val : 13;
+    int16_t x_val;
+    int16_t y_val;
+    int16_t z_val;
 };
 
 ///
