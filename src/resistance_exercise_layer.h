@@ -22,7 +22,7 @@ typedef uint16_t weight_t;
 
 typedef struct __attribute__((__packed__)) {
     char name[24];
-    duration_t    duration;       // 0..100
+    duration_t    duration;         // 0..100
     repetitions_t repetitions;      // 1..~600, UNK_DURATION for unknown
     intensity_t   intensity;        // 1..100,  UNK_INTENSITY for unknown
     weight_t      weight;           // 1..~500, UNK_WEIGHT for unknown

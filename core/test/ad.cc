@@ -40,11 +40,10 @@ TEST_F(ad_test, overflows) {
     threed_data *data = reinterpret_cast<threed_data *>(ad_test::buffer);
     for (int i = 0; i < 100; i++) {
         EXPECT_EQ(data[i].x_val, 1000);
-        EXPECT_EQ(data[i].y_val, 4095);
-        EXPECT_EQ(data[i].z_val, -4095);
+        EXPECT_EQ(data[i].y_val, 5000);
+        EXPECT_EQ(data[i].z_val, -5000);
     }
 
     ad_stop();
 
 }
-

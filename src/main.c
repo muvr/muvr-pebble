@@ -6,8 +6,6 @@
 static void click_config_provider(void *context);
 static void back_click_handler(ClickRecognizerRef recognizer, void *context);
 
-#define RESISTANCE_EXERCISE_MAX 128
-
 static struct {
     Window *rex_window;
     bool exercising;
@@ -21,7 +19,7 @@ static void safe_vibes_double_pulse(void) {
 }
 
 static void start(void) {
-    ad_start(main_ctx.message_callback, AD_SAMPLING_50HZ, 2050);
+    ad_start(main_ctx.message_callback, AD_SAMPLING_50HZ, 1050);
 
     main_ctx.exercising = true;
 }
@@ -63,14 +61,6 @@ static void app_message_received(DictionaryIterator *iterator, void *context) {
         }
         t = dict_read_next(iterator);
     }
-}
-
-static bool is_vibrating(void) {
-    time_t now;
-    time(&now);
-    time_t diff = now - main_ctx.vibes_start_time;
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "%ld", diff);
-    return diff < 3;
 }
 
 /**

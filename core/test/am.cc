@@ -4,9 +4,13 @@
 
 class am_test : public testing::Test {
 protected:
-    template <typename T>
-    void bytes_equal(const std::vector<T> &actual, const std::initializer_list<T> &expected) {
-        for (auto &a : actual) std::cout << std::to_string(a) << ", ";
+
+    void bytes_equal(const std::vector<uint8_t> &actual, const std::initializer_list<uint8_t> &expected) {
+        for (auto &a : actual) {
+            std::cout << "0x"
+                      << std::setfill ('0') << std::setw(2)
+                      << std::hex << static_cast<int>(a) << ", ";
+        }
         std::cout << std::endl;
 
         EXPECT_EQ(actual.size(), expected.size());
@@ -44,11 +48,11 @@ TEST_F(am_test, trivial) {
     auto callback = am_start(123, 100, 2);
     uint8_t buf[] = {1, 1, 2, 2, 3, 3};
     callback(buf, 6, 0, 0);
-    auto data = pebble::mocks::app_messages()->last_dict().get<std::vector<uint8_t>>(0xface0fb0);
-    bytes_equal<uint8_t>(data, { 123, 3, 100, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 3, 3 });
+    auto data = pebble::mocks::app_messages()->last_dict().get<std::vector<uint8_t>>(0xad000000);
+    bytes_equal(data, { 0x61, 0x64, 0x01, 0x64, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x7b, 0x00, 0x00, 0x00, 0x01, 0x01, 0x02, 0x02, 0x03, 0x03 });
     am_stop();
-    data = pebble::mocks::app_messages()->last_dict().get<std::vector<uint8_t>>(0x0000dead);
-    bytes_equal<uint8_t>(data, { 123, 0, 100, 2, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 });
+    data = pebble::mocks::app_messages()->last_dict().get<std::vector<uint8_t>>(0xdead0000);
+    bytes_equal(data, { 0x61, 0x64, 0x01, 0x64, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x7b, 0x00, 0x00, 0x00, 0x00 });
 }
 
 /*
