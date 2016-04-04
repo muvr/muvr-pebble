@@ -1,17 +1,13 @@
 #include <gtest/gtest.h>
 #include "am.h"
+#include "ad.h"
 #include "mocks.h"
 
 class am_test : public testing::Test {
 protected:
 
     void bytes_equal(const std::vector<uint8_t> &actual, const std::initializer_list<uint8_t> &expected) {
-        for (auto &a : actual) {
-            std::cout << "0x"
-                      << std::setfill ('0') << std::setw(2)
-                      << std::hex << static_cast<int>(a) << ", ";
-        }
-        std::cout << std::endl;
+        cout_bytes(actual);
 
         EXPECT_EQ(actual.size(), expected.size());
         auto a = actual.begin();
@@ -19,6 +15,15 @@ protected:
             EXPECT_EQ(e, *a);
             a++;
         }
+    }
+
+    void cout_bytes(const std::vector<uint8_t> &bytes) const {
+        for (auto &b : bytes) {
+            std::cout << "0x"
+            << std::setfill ('0') << std::setw(2)
+            << std::hex << static_cast<int>(b) << ", ";
+        }
+        std::cout << std::endl;
     }
 
     /*
@@ -53,6 +58,23 @@ TEST_F(am_test, trivial) {
     am_stop();
     data = pebble::mocks::app_messages()->last_dict().get<std::vector<uint8_t>>(0xdead0000);
     bytes_equal(data, { 0x61, 0x64, 0x01, 0x64, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x7b, 0x00, 0x00, 0x00, 0x00 });
+}
+
+TEST_F(am_test, accelerometer_data) {
+    #define COUNT 50
+
+    threed_data accelerometer[COUNT];
+    for (int i = 0; i < COUNT; i++) {
+        accelerometer[i].x_val = 1;
+        accelerometer[i].y_val = 1;
+        accelerometer[i].z_val = 1;
+    }
+
+    auto callback = am_start(123, 50, 6);
+    callback(reinterpret_cast<uint8_t *>(accelerometer), sizeof(accelerometer), 0, 1000);
+    auto data = pebble::mocks::app_messages()->last_dict().get<std::vector<uint8_t>>(0xad000000);
+    EXPECT_EQ(data.size(), COUNT * 6 + sizeof(header));
+    cout_bytes(data);
 }
 
 /*

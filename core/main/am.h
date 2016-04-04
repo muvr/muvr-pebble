@@ -34,6 +34,9 @@ struct __attribute__((__packed__)) header {
 /// Sets up App Messages BLE communication, returning a ``message_callback_t`` value,
 /// which prepends the ``struct header`` above ahead of the samples passed.
 /// The ``type``, ``samples_per_second``, and ``sample_size`` will be set in the header.
+/// - parameter type the type ???
+/// - parameter samples_per_second the actual number of samples per second
+/// - parameter sample_size the size in B of one sample
 ///
 message_callback_t am_start(uint32_t type, uint8_t samples_per_second, uint8_t sample_size);
 
