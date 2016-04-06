@@ -33,15 +33,15 @@ TEST_F(ad_test, overflows) {
     AccelRawData a = { .x = 1000, .y = 5000, .z = -5000 };
     for (int i = 0; i < 2; i++) mock_data.push_back(a);
 
-    ad_start(ad_test::ad_callback, AD_SAMPLING_50HZ, 1000);
-    for (int i = 0; i < AD_BUFFER_SIZE / 2 / sizeof(threed_data); i++) *mocks::accel_service() << mock_data;
+    ad_start(ad_test::ad_callback, 50, 1000);
+    for (int i = 0; i < AD_BUFFER_SIZE / 2  / sizeof(threed_data); i++) *mocks::accel_service() << mock_data;
 
     ASSERT_TRUE(ad_test::buffer != nullptr);
     threed_data *data = reinterpret_cast<threed_data *>(ad_test::buffer);
-    for (int i = 0; i < 100; i++) {
+    for (int i = 0; i < 50; i++) {
         EXPECT_EQ(data[i].x_val, 1000);
-        EXPECT_EQ(data[i].y_val, 5000);
-        EXPECT_EQ(data[i].z_val, -5000);
+        EXPECT_EQ(data[i].y_val, 4095);
+        EXPECT_EQ(data[i].z_val, -4095);
     }
 
     ad_stop();
