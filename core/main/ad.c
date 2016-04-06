@@ -22,7 +22,7 @@ static struct {
     uint64_t start_time;
 } ad_context;
 
-// #define SIGNED_12_MAX(x) (int16_t)((x) > 4095 ? 4095 : ((x) < -4095 ? -4095 : (x)))
+#define SIGNED_12_MAX(x) (int16_t)((x) > 4095 ? 4095 : ((x) < -4095 ? -4095 : (x)))
 
 /**
  * Handle the samples arriving.
@@ -35,9 +35,9 @@ static void ad_raw_accel_data_handler(AccelRawData *data, uint32_t num_samples, 
     for (unsigned int i = 0; i < num_samples; ++i) {
         
 #ifndef TEST_WITH_SINES
-        ad[i].x_val = data[i].x;
-        ad[i].y_val = data[i].y;
-        ad[i].z_val = data[i].z;
+        ad[i].x_val = SIGNED_12_MAX(data[i].x);
+        ad[i].y_val = SIGNED_12_MAX(data[i].y);
+        ad[i].z_val = SIGNED_12_MAX(data[i].z);
 #else
         ad[i].x_val = sin_lookup((timestamp * 300) % TRIG_MAX_ANGLE) >> 6; // SIGNED_12_MAX(data[i].x);
         ad[i].y_val = sin_lookup((timestamp * 300) % TRIG_MAX_ANGLE) >> 6; // SIGNED_12_MAX(data[i].y);
@@ -72,11 +72,11 @@ static void ad_raw_accel_data_handler(AccelRawData *data, uint32_t num_samples, 
     }
 }
 
-int ad_start(const message_callback_t callback, const ad_sampling_rate_t frequency, const uint16_t maximum_time) {
+int ad_start(const message_callback_t callback, const uint8_t frequency, const uint16_t maximum_time) {
     if (ad_context.callback != NULL) return E_AD_ALREADY_RUNNING;
 
     ad_context.callback = callback;
-    ad_context.samples_per_second = (uint8_t) frequency;
+    ad_context.samples_per_second = frequency;
     ad_context.maximum_time = maximum_time;
     ad_context.start_time = TIME_NAN;
 

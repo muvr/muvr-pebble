@@ -19,7 +19,7 @@ static void safe_vibes_double_pulse(void) {
 }
 
 static void start(void) {
-    ad_start(main_ctx.message_callback, AD_SAMPLING_50HZ, 1050);
+    ad_start(main_ctx.message_callback, 50, 1000);
 
     main_ctx.exercising = true;
 }
@@ -100,7 +100,7 @@ static void init(void) {
     main_ctx.exercising = false;
     main_ctx.vibes_start_time = 0;
 
-    main_ctx.message_callback = am_start(0x516c6174, 50, 5);
+    main_ctx.message_callback = am_start(0x516c6174, 50, sizeof(struct threed_data));
 }
 
 static void deinit(void) {

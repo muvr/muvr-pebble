@@ -3,7 +3,7 @@
 #include "m.h"
 
 // buffer size in B
-#define AD_BUFFER_SIZE (uint16_t)600 // 500 = 100 samples per call
+#define AD_BUFFER_SIZE (uint16_t) sizeof(struct threed_data) * 50 // 500 = 100 samples per call
 
 #define E_AD_ALREADY_RUNNING -1
 #define E_AD_MEM -2
@@ -15,20 +15,10 @@
  * Packed 6 B of the accelerometer values
  */
 struct __attribute__((__packed__)) threed_data {
-    int16_t x_val;
-    int16_t y_val;
-    int16_t z_val;
+    int16_t x_val : 13;
+    int16_t y_val : 13;
+    int16_t z_val : 14;
 };
-
-///
-/// Defines the sampling rates
-///
-typedef enum {
-//    AD_SAMPLING_10HZ = 10,
-//    AD_SAMPLING_25HZ = 25,
-    AD_SAMPLING_50HZ = 50
-//    AD_SAMPLING_100HZ = 100
-} ad_sampling_rate_t;
 
 #ifdef __cplusplus
 extern "C" {
@@ -41,7 +31,7 @@ extern "C" {
 ///
 /// Returns 0 for success, negative values for failures
 ///
-int ad_start(const message_callback_t callback, const ad_sampling_rate_t frequency, const uint16_t maximum_time);
+int ad_start(const message_callback_t callback, const uint8_t frequency, const uint16_t maximum_time);
 
 ///
 /// Stops the accelerometer recording. After this call, no more calls to

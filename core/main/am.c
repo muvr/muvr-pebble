@@ -114,16 +114,15 @@ static void send_message(const uint32_t key, const uint8_t* payload_buffer, cons
     for (int i = 0; i < 5; ++i) {
         struct header *header = (struct header *) message_buffer;
         header->preamble1 = 0x61;
-        header->preamble2 = 0x64;
+        header->preamble2 = 0x65;
         header->types_count = 1;
         header->samples_per_second = context->samples_per_second;
         header->timestamp = timestamp;
-        header->count = (uint32_t) (size / context->sample_size);
+        header->count = (uint32_t) (size / context->sample_size) * 3; // number of values
         header->type = context->type;
 
         // header->sequence_number = context->sequence_number;
         // header->duration = duration;
-        
 
         if (send_buffer(context, key, message_buffer, (uint16_t) (size + sizeof(struct header)))) {
             APP_LOG(APP_LOG_LEVEL_DEBUG, "send_message: sent %lu samples, at %g", header->count, timestamp);
