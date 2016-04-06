@@ -17,7 +17,8 @@
 struct __attribute__((__packed__)) threed_data {
     int16_t x_val : 13;
     int16_t y_val : 13;
-    int16_t z_val : 14;
+    int16_t z_val : 13;
+    int16_t _ : 1; // spare bit to fit on 5 bytes
 };
 
 #ifdef __cplusplus
