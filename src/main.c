@@ -34,30 +34,30 @@ static void app_message_received(DictionaryIterator *iterator, void *context) {
         APP_LOG(APP_LOG_LEVEL_DEBUG, "Received %lx", t->key);
         switch (t->key) {
             case 0xa0000000: // notify-not-moving
-                rex_not_moving();
-                return;
+//                rex_not_moving();
+                break;
             case 0xa0000001: // notify-moving
-                rex_moving();
-                return;
+//                rex_moving();
+                break;
             case 0xa0000002: // notify-exercising
-                rex_exercising();
-                return;
+//                rex_exercising();
+                break;
             case 0xa0000003: // classification completed
                 ad_stop();
                 safe_vibes_double_pulse();
-                return;
+                break;
             case 0xa0000004: // notify simple current
-                rex_set_current((resistance_exercise_t*)t->value->data);
-                return;
+//                rex_set_current((resistance_exercise_t*)t->value->data);
+                break;
             case 0xb0000000: // start recording
-                rex_moving();
+//                rex_moving();
                 start();
-                return;
+                break;
             case 0xb0000001: // stop recording
                 main_ctx.exercising = false;
-                rex_empty();
+//                rex_empty();
                 ad_stop();
-                return;
+                break;
         }
         t = dict_read_next(iterator);
     }
@@ -73,7 +73,7 @@ static void back_click_handler(ClickRecognizerRef recognizer, void *context) {
         // we are exercising; now's the time to stop
         APP_LOG(APP_LOG_LEVEL_DEBUG, "Stopping exercise.");
         ad_stop();
-        rex_empty();
+//        rex_empty();
 
         am_send_simple(msg_training_completed, 0);
         main_ctx.exercising = false;
