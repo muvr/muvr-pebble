@@ -7,8 +7,6 @@
 #define OUTB_S_CODE 98304
 #define OUTB_F_CODE 131072
 
-#define APP_MESSAGE_OUTBOX_SIZE 720
-
 /**
  * Context that holds the current callback and samples_per_second. It is used in the accelerometer
  * callback to calculate the G forces and to push the packed sample buffer to the callback.
@@ -187,7 +185,6 @@ message_callback_t am_start(uint32_t type, uint8_t samples_per_second, uint8_t s
     context->send_in_progress = false;
 
     app_message_set_context(context);
-    app_message_open(APP_MESSAGE_INBOX_SIZE_MINIMUM, APP_MESSAGE_OUTBOX_SIZE);
     app_message_register_outbox_failed(send_failed);
 
     return &sample_callback;

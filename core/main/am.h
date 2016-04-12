@@ -6,6 +6,8 @@
 extern "C" {
 #endif
 
+#define APP_MESSAGE_OUTBOX_SIZE 720
+
 typedef enum {
     msg_dead               = 0xdead0000,
     msg_ad                 = 0xad000000,

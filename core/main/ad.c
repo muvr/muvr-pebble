@@ -80,8 +80,6 @@ int ad_start(const message_callback_t callback, const uint8_t frequency, const u
     ad_context.maximum_time = maximum_time;
     ad_context.start_time = TIME_NAN;
 
-    if (ad_context.buffer == NULL) return E_AD_MEM;
-
     accel_raw_data_service_subscribe(AD_NUM_SAMPLES, ad_raw_accel_data_handler);
     accel_service_set_sampling_rate((AccelSamplingRate)frequency);
     
