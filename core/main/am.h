@@ -6,7 +6,7 @@
 extern "C" {
 #endif
 
-#define APP_MESSAGE_OUTBOX_SIZE 720
+#define APP_MESSAGE_OUTBOX_SIZE APP_MESSAGE_OUTBOX_SIZE_MINIMUM
 
 typedef enum {
     msg_dead               = 0xdead0000,
