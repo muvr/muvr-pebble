@@ -6,6 +6,7 @@
 #define DICT_W_CODE 65535
 #define OUTB_S_CODE 98304
 #define OUTB_F_CODE 131072
+#define MAX_SEND_FAILURES 200
 
 /**
  * Context that holds the current callback and samples_per_second. It is used in the accelerometer
@@ -95,6 +96,12 @@ static void send_message(const uint32_t key, const uint8_t* payload_buffer, cons
 
     struct am_context_t *context = app_message_get_context();
     if (context == NULL) return;
+
+    if (context->error_count >= MAX_SEND_FAILURES) {
+        APP_LOG(APP_LOG_LEVEL_ERROR, "send_message: Stop sending. Too many send failures. Could be connectivity problem!");
+        return;
+    }
+
     if (context->send_in_progress) {
         APP_LOG(APP_LOG_LEVEL_ERROR, "send_message: dropped message.");
         return;
@@ -124,16 +131,17 @@ static void send_message(const uint32_t key, const uint8_t* payload_buffer, cons
 
         if (send_buffer(context, key, message_buffer, (uint16_t) (size + sizeof(struct header)))) {
             APP_LOG(APP_LOG_LEVEL_DEBUG, "send_message: sent %lu samples, at %g", header->count, timestamp);
-            context->count++;
+            ++context->count;
             break;
         } else {
             char err[20];
             get_error_text(context->last_error, err, 20);
-            APP_LOG(APP_LOG_LEVEL_DEBUG, "send_message: not sent: %s. Size: %u", err, (uint16_t) (size + sizeof(struct header)));
+            ++context->error_count;
+            APP_LOG(APP_LOG_LEVEL_DEBUG, "send_message: not sent: %s. Size: %u, error_count: %i", err, (uint16_t) (size + sizeof(struct header)), context->error_count);
             psleep(200);
         }
     }
-    context->sequence_number++;
+    ++context->sequence_number;
     context->send_in_progress = false;
 }
 
@@ -151,7 +159,7 @@ void am_send_simple(const msgkey_t key, const uint8_t value) {
         uint8_t message_buffer[1] = {value};
         if (send_buffer(context, key, message_buffer, 1)) {
             APP_LOG(APP_LOG_LEVEL_DEBUG, "am_send_simple: sent.");
-            context->count++;
+            ++context->count;
             break;
         } else {
             char err[20];
@@ -167,8 +175,16 @@ void sample_callback(const uint8_t* payload_buffer, const uint16_t size, const d
     send_message(msg_ad, payload_buffer, size, timestamp, duration);
 }
 
-static void send_failed(DictionaryIterator __unused *iterator, AppMessageResult __unused reason, void __unused *context) {
+static void send_succeded() {
+    struct am_context_t *context = app_message_get_context();
+    if (context == NULL) return;
+    if (context->error_count == 0) return;
 
+    context->error_count = 0;
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "send_succeded: Message sent, resting error_cout to zero");
+}
+
+static void send_failed(DictionaryIterator __unused *iterator, AppMessageResult __unused reason, void __unused *context) {
 }
 
 message_callback_t am_start(uint32_t type, uint8_t samples_per_second, uint8_t sample_size) {
@@ -185,6 +201,7 @@ message_callback_t am_start(uint32_t type, uint8_t samples_per_second, uint8_t s
     context->send_in_progress = false;
 
     app_message_set_context(context);
+    app_message_register_outbox_sent(send_succeded);
     app_message_register_outbox_failed(send_failed);
 
     return &sample_callback;
