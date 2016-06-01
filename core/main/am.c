@@ -131,17 +131,17 @@ static void send_message(const uint32_t key, const uint8_t* payload_buffer, cons
 
         if (send_buffer(context, key, message_buffer, (uint16_t) (size + sizeof(struct header)))) {
             APP_LOG(APP_LOG_LEVEL_DEBUG, "send_message: sent %lu samples, at %g", header->count, timestamp);
-            context->count++;
+            ++context->count;
             break;
         } else {
             char err[20];
             get_error_text(context->last_error, err, 20);
-            context->error_count++;
+            ++context->error_count;
             APP_LOG(APP_LOG_LEVEL_DEBUG, "send_message: not sent: %s. Size: %u, error_count: %i", err, (uint16_t) (size + sizeof(struct header)), context->error_count);
             psleep(200);
         }
     }
-    context->sequence_number++;
+    ++context->sequence_number;
     context->send_in_progress = false;
 }
 
@@ -159,7 +159,7 @@ void am_send_simple(const msgkey_t key, const uint8_t value) {
         uint8_t message_buffer[1] = {value};
         if (send_buffer(context, key, message_buffer, 1)) {
             APP_LOG(APP_LOG_LEVEL_DEBUG, "am_send_simple: sent.");
-            context->count++;
+            ++context->count;
             break;
         } else {
             char err[20];
